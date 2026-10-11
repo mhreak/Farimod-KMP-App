@@ -1,0 +1,17 @@
+product: android/app
+
+dependencies:
+  - //shared
+  - $libs.androidx.activity.compose
+  - $compose.preview
+  - $compose.uiTooling
+
+settings:
+  compose: enabled
+  android:
+    namespace: ir.farimod.app
+    applicationId: ir.farimod.app
+    versionCode: 1
+    versionName: "1.0.0"
+    # Release AAB/APK is signed with androidApp/keystore.properties (not committed).
+    signing: enabled

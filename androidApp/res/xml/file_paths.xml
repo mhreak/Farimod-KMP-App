@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Camera captures: context.cacheDir/images/ (see MediaPicker.android.kt) -->
+    <cache-path name="camera_images" path="images/" />
+    <external-cache-path name="camera_images_external" path="images/" />
+</paths>
