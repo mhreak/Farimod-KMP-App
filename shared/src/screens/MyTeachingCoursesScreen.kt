@@ -258,14 +258,18 @@ fun MyTeachingCoursesScreen() {
             }
         }
 
-        TeachingCircleButton(
-            modifier = Modifier
+        Box(
+            Modifier
                 .align(AbsoluteAlignment.TopRight)
                 .zIndex(1000f)
-                .absoluteOffset(x = (-20).dp, y = top + 33.dp),
-            onClick = { navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile)) }
+                .absoluteOffset(x = (-20).dp, y = top + 33.dp)
+                .size(44.dp)
+                .touchableOpacity { navigation.goBack() }
+                .rnShadow(5.dp, CircleShape)
+                .background(Color.White.copy(alpha = 0.9f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            MaterialIcons("arrow-forward", size = 24.dp, color = Color.White)
+            MaterialIcons("arrow-forward", size = 24.dp, color = TeachingIndigo)
         }
 
         TeachingCircleButton(

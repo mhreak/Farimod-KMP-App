@@ -26,6 +26,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.farimod.app.components.icons.MaterialIcons
+import ir.farimod.app.platform.AppBuildConfig
+import ir.farimod.app.platform.AppDistribution
 import ir.farimod.app.platform.PlatformBackHandler
 import ir.farimod.app.state.AppUpdateInfo
 import kotlinx.coroutines.coroutineScope
@@ -155,14 +157,27 @@ fun AppUpdateModal(
             Column(
                 modifier = Modifier.fillMaxWidth().absolutePadding(top = 20.dp)
             ) {
-                UpdateButton(
-                    icon = "shop",
-                    iconColor = Color(0xFFFFFFFF),
-                    text = "دانلود از کافه بازار",
-                    textColor = Color(0xFFFFFFFF),
-                    background = Color(0xFF8FB937),
-                    onPress = { onCafeBazarDownload?.invoke() }
-                )
+                val dist = AppBuildConfig.activeDistribution
+                if (dist.isMyket) {
+                    UpdateButton(
+                        icon = "shop",
+                        iconColor = Color(0xFFFFFFFF),
+                        text = "بروزرسانی از مایکت",
+                        textColor = Color(0xFFFFFFFF),
+                        background = Color(0xFF2563EB),
+                        onPress = { onCafeBazarDownload?.invoke() }
+                    )
+                } else if (dist.isBazaar) {
+                    UpdateButton(
+                        icon = "shop",
+                        iconColor = Color(0xFFFFFFFF),
+                        text = "بروزرسانی از کافه بازار",
+                        textColor = Color(0xFFFFFFFF),
+                        background = Color(0xFF8FB937),
+                        onPress = { onCafeBazarDownload?.invoke() }
+                    )
+                }
+
                 UpdateButton(
                     icon = "download",
                     iconColor = Color(0xFFFFFFFF),

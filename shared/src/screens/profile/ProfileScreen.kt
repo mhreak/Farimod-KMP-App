@@ -30,6 +30,7 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,8 +42,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -60,6 +63,7 @@ import ir.farimod.app.network.str
 import ir.farimod.app.screens.profile.ProfileCard
 import ir.farimod.app.screens.profile.ProfileModernColors
 import ir.farimod.app.screens.profile.profileItems
+import ir.farimod.app.services.AuthService
 import ir.farimod.app.state.AuthState
 import ir.farimod.app.theme.FarimodColors
 import ir.farimod.app.ui.AppText
@@ -126,38 +130,71 @@ fun ProfileScreen() {
     }
 
     suspend fun fetchProfile() {
-        val memberId = user?.MemberId
+        val memberId = AuthState.user?.MemberId ?: AuthService.getUserData()?.MemberId
         if (memberId == null || memberId == 0) return
         try {
-            val response = Api.get("MemberInfo/GetProfileInfoToEdit", query = mapOf("memberId" to memberId))
-            val data = response.json
-            val avatar = data.str("AvatarImageURL")
-            if (data is JsonObject && !avatar.isNullOrEmpty()) {
-                val prev = AuthState.user
-                if (prev != null) {
-                    val sameAvatar = prev.AvatarImageURL == avatar
-                    val sameName = ProfileSessionCache.memberName == data.str("MemberName")
-                    if (!(sameAvatar && sameName)) {
-                        ProfileSessionCache.memberName = data.str("MemberName")
-                        ProfileSessionCache.gender = data.int("Gender")
-                        AuthState.user = prev.copy(
-                            MemberId = data.int("MemberId") ?: prev.MemberId,
-                            FirstName = data.str("FirstName") ?: prev.FirstName,
-                            LastName = data.str("LastName") ?: prev.LastName,
-                            Mobile = data.str("Mobile") ?: prev.Mobile,
-                            AvatarImageURL = avatar + "?t=" + currentTimeMillis()
-                        )
-                    }
+            var response = Api.get("MemberInfo/GetProfileInfoToEdit", query = mapOf("memberId" to memberId))
+            var json = response.json
+            var data = (json["Data"] as? JsonObject) ?: (json as? JsonObject)
+
+            var fn = data?.str("FirstName")
+            var ln = data?.str("LastName")
+            var name = data?.str("MemberName")
+                ?: data?.str("Name")
+                ?: listOfNotNull(fn, ln).filter { !it.isNullOrBlank() }.joinToString(" ").trim()
+
+            if (name.isBlank()) {
+                val memberResponse = Api.get("Member/Get", query = mapOf("memberId" to memberId, "currentMemberId" to memberId))
+                val mJson = memberResponse.json
+                val mData = (mJson["Data"] as? JsonObject) ?: (mJson as? JsonObject)
+                if (mData != null) {
+                    fn = mData.str("FirstName") ?: fn
+                    ln = mData.str("LastName") ?: ln
+                    name = mData.str("MemberName")
+                        ?: mData.str("Name")
+                        ?: listOfNotNull(fn, ln).filter { !it.isNullOrBlank() }.joinToString(" ").trim()
+                    if (data == null) data = mData
+                }
+            }
+
+            if (name.isNotBlank()) {
+                ProfileSessionCache.memberName = name
+            }
+
+            val genderVal = data?.int("Gender")
+            if (genderVal != null) {
+                ProfileSessionCache.gender = genderVal
+            }
+
+            val avatar = data?.str("AvatarImageURL") ?: data?.str("AvatarUrl")
+            val current = AuthState.user ?: AuthService.getUserData()
+            if (current != null) {
+                val avatarUrl = if (!avatar.isNullOrEmpty()) avatar + "?t=" + currentTimeMillis() else current.AvatarImageURL
+                val newFirstName = fn.takeIf { !it.isNullOrBlank() } ?: current.FirstName
+                val newLastName = ln.takeIf { !it.isNullOrBlank() } ?: current.LastName
+
+                AuthState.updateUser { cur ->
+                    cur.copy(
+                        MemberId = data?.int("MemberId") ?: cur.MemberId,
+                        FirstName = newFirstName,
+                        LastName = newLastName,
+                        Mobile = data?.str("Mobile") ?: cur.Mobile,
+                        AvatarImageURL = avatarUrl
+                    )
                 }
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            println("Error fetching profile from GetProfileInfoToEdit: $e")
+            println("Error fetching profile: $e")
         }
     }
 
-    useFocusEffect {
+    useFocusEffect(user?.MemberId) {
+        fetchProfile()
+    }
+
+    LaunchedEffect(user?.MemberId) {
         fetchProfile()
     }
 
@@ -461,6 +498,7 @@ fun ProfileScreen() {
                             // profileInfo
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 val memberName = ProfileSessionCache.memberName
+                                    ?: listOfNotNull(user?.FirstName, user?.LastName).filter { it.isNotBlank() }.joinToString(" ").takeIf { it.isNotBlank() }
                                 AppText(
                                     text = if (!memberName.isNullOrEmpty()) memberName else "نام و نام خانوادگی",
                                     fontSize = 22.sp,
@@ -503,23 +541,25 @@ fun ProfileScreen() {
                                 .fillMaxWidth()
                                 .padding(top = 20.dp, bottom = 45.dp)
                         ) {
-                            LazyRow(
-                                state = listState,
-                                reverseLayout = true, // inverted
-                                contentPadding = PaddingValues(horizontal = 15.dp),
-                                horizontalArrangement = Arrangement.spacedBy(15.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                flingBehavior = rememberSnapFlingBehavior(listState, SnapPosition.Center),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(filteredProfileItems, key = { it.id }) { item ->
-                                    ProfileCard(
-                                        item = item,
-                                        cardWidth = cardWidth,
-                                        onPress = handleCardPress,
-                                        user = user,
-                                        onShowPermissionModal = showPermissionModal
-                                    )
+                            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                                LazyRow(
+                                    state = listState,
+                                    reverseLayout = false,
+                                    contentPadding = PaddingValues(horizontal = 15.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(15.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    flingBehavior = rememberSnapFlingBehavior(listState, SnapPosition.Center),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(filteredProfileItems, key = { it.id }) { item ->
+                                        ProfileCard(
+                                            item = item,
+                                            cardWidth = cardWidth,
+                                            onPress = handleCardPress,
+                                            user = user,
+                                            onShowPermissionModal = showPermissionModal
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -4,6 +4,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.russhwolf.settings.Settings
+import ir.farimod.app.platform.AppBuildConfig
+import ir.farimod.app.platform.AppDistribution
 import ir.farimod.app.platform.canOpenUrl
 import ir.farimod.app.platform.openUrl
 import ir.farimod.app.platform.rnNowMillis
@@ -225,22 +227,32 @@ object AppUpdateState {
 
     fun handleCafeBazarDownload() {
         try {
-            // اگر لینک کافه بازار موجود نیست، از package name استفاده کن
-            val bazarUrl: String = updateInfo?.cafeBazarLink?.takeIf { it.isNotEmpty() }
-                ?: "bazaar://details?id=${AppInfo.packageName}"
+            val dist = AppBuildConfig.activeDistribution
+            val targetUrl: String = when (dist) {
+                AppDistribution.MYKET -> "myket://details?id=${AppInfo.packageName}"
+                AppDistribution.CAFE_BAZAAR -> updateInfo?.cafeBazarLink?.takeIf { it.isNotEmpty() }
+                    ?: "bazaar://details?id=${AppInfo.packageName}"
+                AppDistribution.WEBSITE -> updateInfo?.downloadLink?.takeIf { it.isNotEmpty() }
+                    ?: "https://farimod.ir"
+            }
 
-            val canOpen = canOpenUrl(bazarUrl)
+            val webFallback: String = when (dist) {
+                AppDistribution.MYKET -> "https://myket.ir/app/${AppInfo.packageName}"
+                AppDistribution.CAFE_BAZAAR -> "https://cafebazaar.ir/app/${AppInfo.packageName}"
+                AppDistribution.WEBSITE -> updateInfo?.downloadLink?.takeIf { it.isNotEmpty() }
+                    ?: "https://farimod.ir"
+            }
+
+            val canOpen = canOpenUrl(targetUrl)
             if (canOpen) {
-                if (!openUrl(bazarUrl)) throw IllegalStateException("openURL failed")
+                if (!openUrl(targetUrl)) throw IllegalStateException("openURL failed")
                 showUpdateModal = false
             } else {
-                // اگر کافه بازار نصب نیست، لینک وب را باز کن
-                val webUrl = "https://cafebazaar.ir/app/${AppInfo.packageName}"
-                if (!openUrl(webUrl)) throw IllegalStateException("openURL failed")
+                if (!openUrl(webFallback)) throw IllegalStateException("openURL fallback failed")
                 showUpdateModal = false
             }
         } catch (_: Exception) {
-            errorAlert("خطا در باز کردن کافه بازار")
+            errorAlert("خطا در باز کردن لینک بروزرسانی")
         }
     }
 

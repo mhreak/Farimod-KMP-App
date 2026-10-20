@@ -168,6 +168,7 @@ fun LoginScreen() {
                                 icon = "phone-android",
                                 placeholder = "شماره موبایل",
                                 keyboardType = KeyboardType.Phone,
+                                maxLength = 11,
                                 onBlur = { publishMobileError() }
                             )
                             if (mobileError != null) {
@@ -202,7 +203,7 @@ fun LoginScreen() {
                                     modifier = Modifier.touchableOpacity { navigation.navigate("Signup") },
                                     fontSize = 16.sp,
                                     color = FarimodColors.Primary,
-                                    textDecoration = TextDecoration.Underline
+//                                    textDecoration = TextDecoration.Underline
                                 )
                             }
                         }

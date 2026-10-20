@@ -40,5 +40,7 @@ object ApiConfig {
         const val APPLY_DISCOUNT = "SubscriptionPlan/ApplyDiscountCode"
         const val BUY_SUBSCRIPTION = "SubscriptionPlan/BuySubscriptionPlan"
         const val GET_IMAGE_GALLERIES = "ImageGallery/GetAll"
+        const val APP_MARKET_CHECK_COURSE_PAYMENT = "CourseRegistration/AppMarketCheckCoursePayment"
+        const val APP_MARKET_CHECK_SUBSCRIPTION_PLAN_PAYMENT = "SubscriptionPlan/AppMarketCheckSubscriptionPlanPayment"
     }
 }

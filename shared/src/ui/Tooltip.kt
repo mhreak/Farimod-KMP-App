@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,16 +28,19 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import ir.farimod.app.components.icons.Ionicons
 import ir.farimod.app.components.icons.MaterialIcons
+import ir.farimod.app.theme.FarimodTheme
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
@@ -102,8 +106,10 @@ fun Tooltip(
                 usePlatformDefaultWidth = false
             )
         ) {
-            // overlay: flex 1, rgba(0,0,0,0.45), center
-            Box(
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                FarimodTheme(isRtl = true) {
+                    // overlay: flex 1, rgba(0,0,0,0.45), center
+                    Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .graphicsLayer { alpha = backdropOpacity.value }
@@ -132,22 +138,21 @@ fun Tooltip(
                         colors = listOf(TooltipGreen1, TooltipGreen2),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
+                        RowReverse(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 22.dp, vertical = 18.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                            RowReverse(verticalAlignment = Alignment.CenterVertically) {
                                 Ionicons(name = "information-circle", size = 32.dp, color = Color.White)
                                 AppText(
                                     text = "راهنما",
-                                    modifier = Modifier.absolutePadding(left = 10.dp),
+                                    modifier = Modifier.absolutePadding(right = 10.dp),
                                     fontSize = 20.sp,
                                     color = Color.White,
-                                    fontFamily = FontFamily.Default,
-                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = RNFonts.Yekan_Bakh_Bold,
                                     textAlign = TextAlign.Right
                                 )
                             }
@@ -162,11 +167,11 @@ fun Tooltip(
                         AppText(
                             text = content,
                             modifier = Modifier.fillMaxWidth(),
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             color = Color(0xFF555555),
-                            fontFamily = FontFamily.Default,
+                            fontFamily = RNFonts.Yekan_Bakh_Regular,
                             textAlign = TextAlign.Right,
-                            lineHeight = 28.sp
+                            lineHeight = 26.sp
                         )
 
                         Box(Modifier.fillMaxWidth().touchableOpacity(activeOpacity = 0.9f) { visible = false }) {
@@ -178,18 +183,17 @@ fun Tooltip(
                                     .height(52.dp),
                                 shape = RoundedCornerShape(16.dp)
                             ) {
-                                Row(
+                                RowReverse(
                                     modifier = Modifier.align(Alignment.Center),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     MaterialIcons(name = "check", size = 20.dp, color = Color.White)
                                     AppText(
                                         text = "متوجه شدم",
-                                        modifier = Modifier.absolutePadding(left = 8.dp),
+                                        modifier = Modifier.absolutePadding(right = 8.dp),
                                         fontSize = 16.sp,
                                         color = Color.White,
-                                        fontFamily = FontFamily.Default,
-                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = RNFonts.Yekan_Bakh_Bold,
                                         textAlign = TextAlign.Right
                                     )
                                 }
@@ -200,4 +204,6 @@ fun Tooltip(
             }
         }
     }
+}
+}
 }

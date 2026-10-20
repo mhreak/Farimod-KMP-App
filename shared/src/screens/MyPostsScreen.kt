@@ -257,9 +257,7 @@ fun MyPostsScreen() {
                 .size(44.dp)
                 .rnShadow(5.dp, CircleShape, Color.Black)
                 .background(Color.White.copy(alpha = 0.9f), CircleShape)
-                .touchableOpacity {
-                    navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile))
-                },
+                .touchableOpacity { navigation.goBack() },
             contentAlignment = Alignment.Center
         ) {
             MaterialIcons("arrow-forward", size = 24.dp, color = Color(0xFF6366F1))

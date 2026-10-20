@@ -202,10 +202,24 @@ fun UserProfileScreen() {
                 },
                 onBlog = { item ->
                     navigation.navigate("MagDetailes", mapOf("title" to item["Title"].str, "blogId" to item["BlogPostId"].int))
-                },
-                onBack = { navigation.goBack() }
+                }
             )
         }
+
+        Box(
+            Modifier
+                .align(AbsoluteAlignment.TopRight)
+                .zIndex(1000f)
+                .absoluteOffset(x = (-20).dp, y = statusBarHeight() + 33.dp)
+                .size(44.dp)
+                .touchableOpacity { navigation.goBack() }
+                .rnShadow(5.dp, CircleShape)
+                .background(Color.White.copy(alpha = 0.9f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            MaterialIcons("arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
+        }
+
         Toast(toast.visible, toast.message, toast.type) { toast = toast.copy(visible = false) }
     }
 }
@@ -362,8 +376,7 @@ private fun UpProfileContent(
     onCourse: (JsonElement) -> Unit,
     onProduct: (JsonElement) -> Unit,
     onGallery: (JsonElement) -> Unit,
-    onBlog: (JsonElement) -> Unit,
-    onBack: () -> Unit
+    onBlog: (JsonElement) -> Unit
 ) {
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -401,17 +414,6 @@ private fun UpProfileContent(
     ) {
         UpFlow(Modifier.fillMaxWidth()) {
             UpHalfCircle()
-            Box(
-                Modifier
-                    .upChild(marginTop = (UpConst.PROFILE_TOP + 100).dp, marginBottom = (UpConst.PROFILE_TOP - 1670).dp, align = UP_END, zIndex = 4f)
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.51f))
-                    .touchableOpacity(onClick = onBack),
-                contentAlignment = Alignment.Center
-            ) {
-                Ionicons(name = "arrow-forward", size = 24.dp, color = UpSurface)
-            }
             UpProfileBlock(source, onLikeError)
             if (routeHasVideo) UpVideoSection(source)
             if (!showQuick) Box(Modifier.upChild(height = 50.dp).fillMaxWidth())

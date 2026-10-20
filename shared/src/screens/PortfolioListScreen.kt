@@ -161,6 +161,15 @@ fun PortfolioListScreen() {
     if (user == null) {
         Box(Modifier.fillMaxSize().background(PortfolioPageBg)) {
             MainBackground()
+            PortfolioCircleButton(
+                modifier = Modifier
+                    .zIndex(1000f)
+                    .align(AbsoluteAlignment.TopRight)
+                    .absoluteOffset(x = (-20).dp, y = statusTop + 33.dp),
+                onClick = { navigation.goBack() }
+            ) {
+                MaterialIcons("arrow-forward", size = 24.dp, color = PortfolioIndigo)
+            }
             Column(
                 Modifier.fillMaxSize().absolutePadding(left = 40.dp, right = 40.dp, top = 60.dp, bottom = 60.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -273,7 +282,7 @@ fun PortfolioListScreen() {
                 .zIndex(1000f)
                 .align(AbsoluteAlignment.TopRight)
                 .absoluteOffset(x = (-20).dp, y = statusTop + 33.dp),
-            onClick = { navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile)) }
+            onClick = { navigation.goBack() }
         ) {
             MaterialIcons("arrow-forward", size = 24.dp, color = PortfolioIndigo)
         }
@@ -283,8 +292,8 @@ fun PortfolioListScreen() {
                 .zIndex(1000f)
                 .align(AbsoluteAlignment.TopLeft)
                 .absoluteOffset(x = 20.dp, y = statusTop + 33.dp)
-                .size(50.dp)
-                .rnShadow(8.dp, CircleShape, PortfolioSuccess)
+                .size(44.dp)
+                .rnShadow(5.dp, CircleShape, PortfolioSuccess)
                 .touchableOpacity { navigation.navigate("AddPortfolio") }
         ) {
             LinearGradient(

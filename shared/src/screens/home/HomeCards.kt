@@ -229,49 +229,118 @@ internal fun HomeMemberGroupCard(item: JsonElement, onPress: (JsonElement) -> Un
     val id = item.homeInt("MemberGroupId")
     val gradient = groupGradients[homeMod(id, groupGradients.size)]
     val icon = fashionIcons[homeMod(id, fashionIcons.size)]
+    val shape = RoundedCornerShape(20.dp)
+
+    val rawUrl = item.str("ImageURL")
+        ?: item.str("FeaturedImageURL")
+        ?: item.str("GroupImageURL")
+        ?: item.str("IconURL")
+        ?: item.str("PictureURL")
+        ?: item.str("PhotoURL")
+        ?: item.str("Image")
+        ?: item.str("FeaturedImageFileName")
+        ?: item.str("ImageFileName")
+    val imageUrl = ApiConfig.resolveMediaUrl(rawUrl)
+    var imageError by remember(imageUrl) { mutableStateOf(false) }
+    val showRemote = !imageUrl.isNullOrBlank() && !imageError
+
     Box(
         Modifier
-            .absolutePadding(left = 8.dp, right = 8.dp, top = 10.dp, bottom = 10.dp)
+            .absolutePadding(left = 6.dp, right = 6.dp, top = 6.dp, bottom = 6.dp)
             .homeSpringPress(activeOpacity = 0.9f) { onPress(item) }
     ) {
         Box(
             Modifier
-                .size(100.dp)
-                .rnShadow(10.dp, RoundedCornerShape(24.dp))
-                .clip(RoundedCornerShape(24.dp))
+                .size(105.dp)
+                .rnShadow(6.dp, shape)
+                .clip(shape)
         ) {
-            LinearGradient(
-                colors = gradient,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .border(3.dp, Color.White, RoundedCornerShape(24.dp))
-                    .padding(14.dp),
-                start = Offset(0f, 0f),
-                end = Offset(1f, 1f)
-            ) {
-                Column(
-                    Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(Modifier.padding(bottom = 5.dp).rnShadow(1.5.dp, RectangleShape, Color.Black.copy(alpha = 0.15f))) {
-                        MaterialCommunityIcons(
-                            name = icon,
-                            size = 28.dp,
-                            color = Color.Black.copy(alpha = 0.95f)
+            if (showRemote) {
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    onError = { imageError = true }
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.7f)
+                        .linearGradient(
+                            listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.35f),
+                                Color.Black.copy(alpha = 0.85f)
+                            )
                         )
-                    }
-                    AppText(
+                )
+                val density = LocalDensity.current
+                val shadow = with(density) {
+                    Shadow(
+                        color = Color.Black.copy(alpha = 0.8f),
+                        offset = Offset(0f, 1.dp.toPx()),
+                        blurRadius = 3.dp.toPx()
+                    )
+                }
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp, vertical = 8.dp)
+                ) {
+                    Text(
                         text = safeString(item["GroupName"], "گروه بدون نام"),
-                        modifier = Modifier.padding(bottom = 10.dp).absolutePadding(left = 4.dp, right = 4.dp),
-                        fontSize = 12.sp,
-                        fontFamily = RNFonts.Yekan_Bakh_Bold,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 18.sp,
+                        style = rnTextStyle(
+                            fontSize = 11.sp,
+                            color = Color.White,
+                            fontFamily = RNFonts.Yekan_Bakh_Bold,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 15.sp
+                        ).copy(shadow = shadow),
+                        modifier = Modifier.fillMaxWidth(),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
+                }
+            } else {
+                LinearGradient(
+                    colors = gradient,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .border(2.dp, Color.White.copy(alpha = 0.6f), shape),
+                    start = Offset(0f, 0f),
+                    end = Offset(1f, 1f)
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 6.dp, vertical = 8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            Modifier.padding(bottom = 6.dp)
+                        ) {
+                            MaterialCommunityIcons(
+                                name = icon,
+                                size = 30.dp,
+                                color = Color.Black.copy(alpha = 0.95f)
+                            )
+                        }
+                        AppText(
+                            text = safeString(item["GroupName"], "گروه بدون نام"),
+                            modifier = Modifier.fillMaxWidth(),
+                            fontSize = 11.sp,
+                            fontFamily = RNFonts.Yekan_Bakh_Bold,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center,
+                            lineHeight = 15.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
@@ -628,7 +697,7 @@ internal fun HomePortfolioCard(item: JsonElement, onPress: (JsonElement) -> Unit
                         model = resolved,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.Fit,
                         onError = { _ -> imageError = true }
                     )
                 }

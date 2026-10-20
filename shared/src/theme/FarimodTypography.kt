@@ -20,11 +20,7 @@ val YekanBakhFontFamily: FontFamily
 
 val IranSansFontFamily: FontFamily
     @Composable
-    get() = FontFamily(
-        Font(Res.font.iransans_medium, weight = FontWeight.Normal),
-        Font(Res.font.iransans_bold, weight = FontWeight.Bold),
-        Font(Res.font.iransans_black, weight = FontWeight.Black)
-    )
+    get() = YekanBakhFontFamily
 
 @Composable
 fun getFarimodTypography(): Typography {

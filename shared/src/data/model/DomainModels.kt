@@ -316,7 +316,8 @@ data class BuySubscriptionRequest(
 data class BuySubscriptionResponse(
     val GatewayURL: String? = null,
     val Success: Boolean = false,
-    val Message: String? = null
+    val Message: String? = null,
+    val MemberSubscriptionId: Int? = null
 )
 
 @Serializable
@@ -746,7 +747,34 @@ data class CourseRegisterResponse(
     val Success: Boolean = true,
     val Message: String? = null,
     val GatewayURL: String? = null,
-    val CourseRegistrationId: Int? = null
+    val CourseRegistrationId: Int? = null,
+    val PaymentType: String? = null,
+    val FreeRegistration: Boolean = false
+)
+
+@Serializable
+data class AppMarketCheckCoursePaymentRequest(
+    val CourseRegistrationId: Int = 0,
+    val PurchaseToken: String = ""
+)
+
+@Serializable
+data class AppMarketCheckCoursePaymentResponse(
+    val Success: Boolean = true,
+    val Message: String? = null
+)
+
+@Serializable
+data class AppMarketCheckSubscriptionPaymentRequest(
+    val MemberSubscriptionId: Int = 0,
+    val Token: String = "",
+    val PurchaseToken: String = ""
+)
+
+@Serializable
+data class AppMarketCheckSubscriptionPaymentResponse(
+    val Success: Boolean = true,
+    val Message: String? = null
 )
 
 @Serializable

@@ -581,8 +581,7 @@ private fun SubInfoStudentDrawer(
                                 AppText(
                                     "${subInfoDigits(subInfoFormatPrice(student["TotalAmount"]))} تومان",
                                     fontSize = 24.sp,
-                                    // fontFamily "Yekan_Bakh_Heavy" is not a loaded font in RN → system default font
-                                    fontFamily = FontFamily.Default,
+                                    fontFamily = RNFonts.Yekan_Bakh_ExtraBold,
                                     color = SubInfoColors.primary
                                 )
                             }
@@ -769,8 +768,7 @@ private fun SubInfoStudentCard(item: JsonElement, index: Int, onPress: () -> Uni
                             subInfoDigits(subInfoFormatPrice(item["TotalAmount"])),
                             modifier = Modifier.alignByBaseline(),
                             fontSize = 16.sp,
-                            // "Yekan_Bakh_Heavy" is not a loaded font in RN → system default font
-                            fontFamily = FontFamily.Default,
+                            fontFamily = RNFonts.Yekan_Bakh_ExtraBold,
                             color = SubInfoColors.primary
                         )
                         AppText(

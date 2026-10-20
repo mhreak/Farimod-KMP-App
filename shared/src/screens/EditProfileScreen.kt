@@ -226,7 +226,7 @@ fun EditProfileScreen() {
     }
 
     val goHome: () -> Unit = {
-        navigation.navigate("MainTabs", mapOf("screen" to Tabs.Home))
+        navigation.goBack()
     }
 
     val handleSave: () -> Unit = {
@@ -473,6 +473,7 @@ fun EditProfileScreen() {
                                             onChangeText = { formData = formData.copy(mobile = it) },
                                             icon = "phone-android",
                                             keyboardType = KeyboardType.Phone,
+                                            maxLength = 11,
                                             placeholder = "شماره موبایل"
                                         )
 

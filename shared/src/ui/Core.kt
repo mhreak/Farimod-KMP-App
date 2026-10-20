@@ -46,9 +46,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.farimod.app.resources.Res
-import ir.farimod.app.resources.iransans_black
-import ir.farimod.app.resources.iransans_bold
-import ir.farimod.app.resources.iransans_medium
 import ir.farimod.app.resources.yekan_bakh_bold
 import ir.farimod.app.resources.yekan_bakh_extrabold
 import ir.farimod.app.resources.yekan_bakh_regular
@@ -64,28 +61,37 @@ typealias colors = FarimodColors
 // Fonts: names are the same as the `fontFamily` strings loaded in RN App.tsx
 // ──────────────────────────────────────────────────────────────────────────────
 object RNFonts {
-    val Yekan_Bakh_Regular: FontFamily @Composable get() = FontFamily(Font(Res.font.yekan_bakh_regular))
-    val Yekan_Bakh_Bold: FontFamily @Composable get() = FontFamily(Font(Res.font.yekan_bakh_bold))
-    val Yekan_Bakh_ExtraBold: FontFamily @Composable get() = FontFamily(Font(Res.font.yekan_bakh_extrabold))
-    val iran_sans_medium: FontFamily @Composable get() = FontFamily(Font(Res.font.iransans_medium))
-    val iran_sans_bold: FontFamily @Composable get() = FontFamily(Font(Res.font.iransans_bold))
-    val iran_sans_black: FontFamily @Composable get() = FontFamily(Font(Res.font.iransans_black))
+    val Yekan_Bakh_Regular: FontFamily
+        @Composable get() = FontFamily(
+            Font(Res.font.yekan_bakh_regular, weight = FontWeight.Normal)
+        )
+    val Yekan_Bakh_Bold: FontFamily
+        @Composable get() = FontFamily(
+            Font(Res.font.yekan_bakh_bold, weight = FontWeight.Bold),
+            Font(Res.font.yekan_bakh_bold, weight = FontWeight.Normal)
+        )
+    val Yekan_Bakh_ExtraBold: FontFamily
+        @Composable get() = FontFamily(
+            Font(Res.font.yekan_bakh_extrabold, weight = FontWeight.ExtraBold),
+            Font(Res.font.yekan_bakh_extrabold, weight = FontWeight.Bold),
+            Font(Res.font.yekan_bakh_extrabold, weight = FontWeight.Normal)
+        )
+    val iran_sans_medium: FontFamily @Composable get() = Yekan_Bakh_Regular
+    val iran_sans_bold: FontFamily @Composable get() = Yekan_Bakh_Bold
+    val iran_sans_black: FontFamily @Composable get() = Yekan_Bakh_ExtraBold
 }
 
 /** Resolve a RN `fontFamily` string ("Yekan_Bakh_Bold", ...) to a Compose [FontFamily]. */
 @Composable
 fun rnFont(name: String?): FontFamily = when (name) {
-    "Yekan_Bakh_Regular" -> RNFonts.Yekan_Bakh_Regular
-    "Yekan_Bakh_Bold" -> RNFonts.Yekan_Bakh_Bold
-    "Yekan_Bakh_ExtraBold" -> RNFonts.Yekan_Bakh_ExtraBold
-    "iran_sans_bold" -> RNFonts.iran_sans_bold
-    "iran_sans_black" -> RNFonts.iran_sans_black
-    else -> RNFonts.iran_sans_medium
+    "Yekan_Bakh_Bold", "iran_sans_bold" -> RNFonts.Yekan_Bakh_Bold
+    "Yekan_Bakh_ExtraBold", "iran_sans_black" -> RNFonts.Yekan_Bakh_ExtraBold
+    else -> RNFonts.Yekan_Bakh_Regular
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
 // AppText  (app/components/Text.tsx + config/styles.ts text style)
-// default: color dark, fontSize 18, fontFamily iran_sans_medium, textAlign right
+// default: color dark, fontSize 18, fontFamily Yekan_Bakh_Regular, textAlign right
 // ──────────────────────────────────────────────────────────────────────────────
 @Composable
 fun AppText(
@@ -158,7 +164,7 @@ fun rnTextStyle(
 ): TextStyle = TextStyle(
     color = color,
     fontSize = fontSize,
-    fontFamily = fontFamily ?: RNFonts.iran_sans_medium,
+    fontFamily = fontFamily ?: RNFonts.Yekan_Bakh_Regular,
     fontWeight = fontWeight,
     fontStyle = fontStyle,
     textAlign = textAlign,

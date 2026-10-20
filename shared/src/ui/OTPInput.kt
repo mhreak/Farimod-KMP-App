@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -160,34 +163,36 @@ fun OTPInput(
         }
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = dims.containerPadding.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        Column(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(horizontal = dims.containerPadding.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            for (index in 0 until length) {
-                key(index) {
-                    OTPCell(
-                        index = index,
-                        length = length,
-                        codeChar = code.getOrNull(index)?.toString(),
-                        focused = focusedIndex == index,
-                        inputSize = dims.inputSize.dp,
-                        gap = dims.gap.dp,
-                        fontSizeValue = dims.fontSize.toFloat(),
-                        requester = requesters[index],
-                        onTextChange = { text -> handleTextChange(text, index) },
-                        onBackspace = { handleBackspace(index) },
-                        onFocused = { focusedIndex = index },
-                        onBlurred = { if (focusedIndex == index) focusedIndex = -1 }
-                    )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                for (index in 0 until length) {
+                    key(index) {
+                        OTPCell(
+                            index = index,
+                            length = length,
+                            codeChar = code.getOrNull(index)?.toString(),
+                            focused = focusedIndex == index,
+                            inputSize = dims.inputSize.dp,
+                            gap = dims.gap.dp,
+                            fontSizeValue = dims.fontSize.toFloat(),
+                            requester = requesters[index],
+                            onTextChange = { text -> handleTextChange(text, index) },
+                            onBackspace = { handleBackspace(index) },
+                            onFocused = { focusedIndex = index },
+                            onBlurred = { if (focusedIndex == index) focusedIndex = -1 }
+                        )
+                    }
                 }
             }
         }

@@ -173,7 +173,7 @@ fun AddProductScreen() {
     }
 
     fun goMyProducts() {
-        navigation.navigate("MyProduct")
+        navigation.goBack()
     }
 
     LaunchedEffect(isEditMode, editProductData) {

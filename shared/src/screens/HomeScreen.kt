@@ -108,7 +108,7 @@ fun HomeScreen() {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = statusTop + 8.dp, bottom = 8.dp)
+                    .padding(top = statusTop + 8.dp, bottom = 18.dp)
                     .absolutePadding(left = 64.dp, right = 64.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -128,6 +128,7 @@ fun HomeScreen() {
                 Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .padding(horizontal = 12.dp)
                     .verticalScroll(rememberScrollState())
             ) {
                 HomeSlides(showToast)
@@ -157,7 +158,9 @@ fun HomeScreen() {
                     .size(44.dp)
                     .touchableOpacity { }
                     .clip(CircleShape)
-                    .border(2.dp, Color.White, CircleShape)
+                    .background(Color.White)
+                    .border(2.dp, Color.White, CircleShape),
+                contentAlignment = Alignment.Center
             ) {
                 LocalImage(
                     Res.drawable.main_icon,

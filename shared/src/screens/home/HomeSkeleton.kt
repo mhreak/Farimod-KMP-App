@@ -97,12 +97,13 @@ internal fun HomeAvatarSkeleton(size: Dp = 100.dp) {
 
 @Composable
 internal fun HomeMemberGroupCardSkeleton() {
-    Box(Modifier.absolutePadding(left = 8.dp, right = 8.dp, top = 10.dp, bottom = 10.dp)) {
+    val shape = RoundedCornerShape(20.dp)
+    Box(Modifier.absolutePadding(left = 6.dp, right = 6.dp, top = 6.dp, bottom = 6.dp)) {
         Box(
             Modifier
-                .size(100.dp)
-                .rnShadow(10.dp, RoundedCornerShape(24.dp))
-                .clip(RoundedCornerShape(24.dp))
+                .size(105.dp)
+                .rnShadow(6.dp, shape)
+                .clip(shape)
         ) {
             HomeSkeleton(Modifier.fillMaxSize(), cornerRadius = 20.dp)
         }

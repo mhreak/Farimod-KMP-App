@@ -1,5 +1,6 @@
 package ir.farimod.app.screens
 
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +54,7 @@ import ir.farimod.app.ui.MainBackground
 import ir.farimod.app.ui.RNFonts
 import ir.farimod.app.ui.Toast
 import ir.farimod.app.ui.ToastData
+import ir.farimod.app.ui.rnShadow
 import ir.farimod.app.ui.statusBarHeight
 import ir.farimod.app.ui.touchableOpacity
 import kotlinx.coroutines.async
@@ -120,8 +122,25 @@ fun SubscriptionScreen() {
     val initialLoading = plansLoading && plans.isEmpty()
 
     if (initialLoading) {
-        Box(Modifier.fillMaxSize().background(ScreenBg), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.fillMaxSize().background(ScreenBg)) {
+            Box(
+                Modifier
+                    .align(AbsoluteAlignment.TopRight)
+                    .zIndex(1000f)
+                    .absoluteOffset(x = (-20).dp, y = topInset + 33.dp)
+                    .size(44.dp)
+                    .touchableOpacity { navigation.goBack() }
+                    .rnShadow(5.dp, CircleShape)
+                    .background(Color.White.copy(alpha = 0.9f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                MaterialIcons(name = "arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
+            }
+            Column(
+                Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 CircularProgressIndicator(modifier = Modifier.size(36.dp), color = SubPrimary, strokeWidth = 4.dp)
                 AppText(
                     text = "در حال بارگذاری...",
@@ -137,6 +156,21 @@ fun SubscriptionScreen() {
 
     Box(Modifier.fillMaxSize().background(ScreenBg)) {
         MainBackground()
+
+        Box(
+            Modifier
+                .align(AbsoluteAlignment.TopRight)
+                .zIndex(1000f)
+                .absoluteOffset(x = (-20).dp, y = topInset + 33.dp)
+                .size(44.dp)
+                .touchableOpacity { navigation.goBack() }
+                .rnShadow(5.dp, CircleShape)
+                .background(Color.White.copy(alpha = 0.9f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            MaterialIcons(name = "arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
+        }
+
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = {
@@ -175,35 +209,16 @@ fun SubscriptionScreen() {
                             .padding(top = topInset + 35.dp, start = 20.dp, end = 20.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                            horizontalArrangement = Arrangement.Center,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AppText(
-                                text = "اشتراک ها",
-                                fontSize = 22.sp,
-                                fontFamily = RNFonts.Yekan_Bakh_ExtraBold,
-                                color = Color(0xFF2C3E50),
-                                modifier = Modifier.fillMaxWidth().absolutePadding(right = 12.dp)
-                            ,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                    Box(
-                        Modifier
-                            .align(AbsoluteAlignment.TopRight)
-                            .absoluteOffset(x = (-20).dp, y = topInset + 33.dp)
-                            .zIndex(1000f)
-                            .size(44.dp)
-                            .touchableOpacity {
-                                navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile))
-                            }
-                            .background(Color(0xFF6366F1), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        MaterialIcons(name = "arrow-forward", size = 24.dp, color = Color.White)
+                        AppText(
+                            text = "اشتراک ها",
+                            fontSize = 22.sp,
+                            fontFamily = RNFonts.Yekan_Bakh_ExtraBold,
+                            color = Color(0xFF2C3E50),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().absolutePadding(left = 56.dp, right = 56.dp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
 

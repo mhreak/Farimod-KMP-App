@@ -112,7 +112,7 @@ fun AddGalleryScreen() {
     }
 
     fun goMyGallery() {
-        navigation.navigate("MyGallery")
+        navigation.goBack()
     }
 
     fun submit() {

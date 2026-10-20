@@ -138,25 +138,60 @@ object SubscriptionService {
         memberId: Int,
         subscriptionPlanId: Int,
         subscriptionTotalDays: Int,
-        discountCode: String = ""
+        discountCode: String = "",
+        purchaseToken: String = "",
+        orderId: String = ""
     ): ServiceResult {
         val token = AuthService.getUserToken()
         if (token.isNullOrEmpty()) return ServiceResult(false, null, "کاربر وارد نشده است")
         return try {
+            val bodyList = mutableListOf<Pair<String, Any?>>(
+                "MemberId" to memberId,
+                "SubscriptionPlanId" to subscriptionPlanId,
+                "SubscriptionTotalDays" to subscriptionTotalDays,
+                "DiscountCode" to discountCode
+            )
+            if (purchaseToken.isNotEmpty()) {
+                bodyList.add("PurchaseToken" to purchaseToken)
+            }
+            if (orderId.isNotEmpty()) {
+                bodyList.add("OrderId" to orderId)
+            }
+
             val response = Api.post(
                 "SubscriptionPlan/BuySubscriptionPlan",
-                body = jsonOf(
-                    "MemberId" to memberId,
-                    "SubscriptionPlanId" to subscriptionPlanId,
-                    "SubscriptionTotalDays" to subscriptionTotalDays,
-                    "DiscountCode" to discountCode
-                ),
+                body = jsonOf(*bodyList.toTypedArray()),
                 auth = true,
                 timeoutMs = TIMEOUT
             )
             val data = response.json
             if (response.ok) ServiceResult(true, data, "اشتراک با موفقیت ثبت شد")
             else ServiceResult(false, null, data.str("Message") ?: "خطا در ثبت اشتراک")
+        } catch (e: ApiNetworkException) {
+            ServiceResult(false, null, errMessage(e, "خطا در اتصال به سرور"))
+        }
+    }
+
+    suspend fun appMarketCheckSubscriptionPlanPayment(
+        memberSubscriptionId: Int,
+        token: String
+    ): ServiceResult {
+        val userToken = AuthService.getUserToken()
+        if (userToken.isNullOrEmpty()) return ServiceResult(false, null, "کاربر وارد نشده است")
+        return try {
+            val response = Api.post(
+                "SubscriptionPlan/AppMarketCheckSubscriptionPlanPayment",
+                body = jsonOf(
+                    "MemberSubscriptionId" to memberSubscriptionId,
+                    "Token" to token,
+                    "PurchaseToken" to token
+                ),
+                auth = true,
+                timeoutMs = TIMEOUT
+            )
+            val data = response.json
+            if (response.ok) ServiceResult(true, data, data.str("Message") ?: "اشتراک با موفقیت فعال شد")
+            else ServiceResult(false, null, data.str("Message") ?: "خطا در تایید پرداخت اشتراک")
         } catch (e: ApiNetworkException) {
             ServiceResult(false, null, errMessage(e, "خطا در اتصال به سرور"))
         }

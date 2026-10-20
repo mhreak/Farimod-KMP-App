@@ -48,18 +48,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
-import io.ktor.client.request.put
 import ir.farimod.app.components.icons.MaterialIcons
 import ir.farimod.app.navigation.Tabs
 import ir.farimod.app.navigation.useNavigation
 import ir.farimod.app.navigation.useRoute
 import ir.farimod.app.network.Api
-import ir.farimod.app.network.FarimodHttpClient
 import ir.farimod.app.network.bool
 import ir.farimod.app.network.get
+import ir.farimod.app.network.int
 import ir.farimod.app.network.jsonOf
 import ir.farimod.app.network.str
+import ir.farimod.app.platform.AppBuildConfig
+import ir.farimod.app.platform.InAppPurchaseResult
+import ir.farimod.app.platform.PlatformBilling
 import ir.farimod.app.platform.isIOS
+import ir.farimod.app.platform.openUrl
 import ir.farimod.app.state.AuthState
 import ir.farimod.app.ui.AppText
 import ir.farimod.app.ui.LinearGradient
@@ -76,6 +79,7 @@ import ir.farimod.app.utils.formatPrice
 import ir.farimod.app.utils.safeNumber
 import ir.farimod.app.utils.toPersianDigits
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlin.math.max
@@ -83,8 +87,6 @@ import kotlin.math.max
 private val RegPrimary = Color(0xFF667EEA)
 private val RegDark = Color(0xFF2C3E50)
 private val RegMedium = Color(0xFF34495E)
-private const val MYKET_TOKEN =
-    "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQChXXM0/itjd4zMeRiTBoASWlgVRRSX4of23aNP7mXLHwzn5P7nOIcD9ObrE0fIludBGRffeSgkAmMDeqC6SY6fou5WJMVbOvZi7bbG2s9dbIeVy6TseHf0u/Y05e6RxCpUqDZ6UNJfwN9gyLcTnJkim9U9be7ibkS421RPcz8PZwIDAQAB"
 
 @Composable
 fun CourseRegistrationScreen() {
@@ -105,14 +107,13 @@ fun CourseRegistrationScreen() {
     val slide = remember { Animatable(50f) }
     val density = LocalDensity.current
     val top = statusBarHeight()
-    val backTop = if (top > 0.dp) top + 12.dp else 40.dp
 
     fun showToast(message: String, type: String = "info") {
         toast = ToastData(true, message, type)
     }
 
     fun goHome() {
-        navigation.navigate("MainTabs", mapOf("screen" to Tabs.Home))
+        navigation.goBack()
     }
 
     suspend fun fetchCourse() {
@@ -181,7 +182,8 @@ fun CourseRegistrationScreen() {
         }
     }
 
-    suspend fun register() {
+    fun register() {
+        if (registering) return
         val id = courseId ?: return
         val memberId = user?.MemberId
         if (memberId == null) {
@@ -192,27 +194,159 @@ fun CourseRegistrationScreen() {
             showToast("ثبت‌نام در این دوره غیرفعال است", "error")
             return
         }
-        registering = true
-        try {
-            val response = Api.post(
-                "CourseRegistration/Register",
-                body = jsonOf(
-                    "CourseId" to id,
-                    "MemberId" to memberId,
-                    "DiscountCode" to if (codeApplied) discountCode else ""
+
+        println("[FarimodBilling] ========================================================")
+        println("[FarimodBilling] 🚀 Step 1: User tapped Register button | courseId=$id, memberId=$memberId, discountCode=$discountCode")
+
+        scope.launch {
+            registering = true
+            try {
+                // مرحله ۱: ارسال درخواست اولیه ثبت‌نام به سرور
+                println("[FarimodBilling] 📡 Step 2: Sending pre-check request to CourseRegistration/Register...")
+                val response = Api.post(
+                    "CourseRegistration/Register",
+                    body = jsonOf(
+                        "CourseId" to id,
+                        "MemberId" to memberId,
+                        "DiscountCode" to if (codeApplied) discountCode else ""
+                    )
                 )
-            )
-            if (!response.ok) {
-                showToast(response.json.str("Message") ?: "خطا در ثبت‌نام", "error")
-                return
+
+                val data = response.json
+                println("[FarimodBilling] 📥 Pre-check response: status=${response.status}, ok=${response.ok}, body=$data")
+                val hasSuccessKey = (data as? kotlinx.serialization.json.JsonObject)?.containsKey("Success") == true
+                if (!response.ok || (hasSuccessKey && !data.bool("Success"))) {
+                    val msg = data.str("Message") ?: "خطا در ثبت‌نام"
+                    println("[FarimodBilling] ❌ Pre-check failed: $msg")
+                    showToast(msg, "error")
+                    registering = false
+                    return@launch
+                }
+
+                // دریافت شناسه‌های برگشتی از سرور
+                val courseRegistrationId = data.int("CourseRegistrationId")
+                    ?: data["Data"].int("CourseRegistrationId")
+                val paymentType = data.str("PaymentType")
+                    ?: data["Data"].str("PaymentType")
+                println("[FarimodBilling] 📋 Server registration response:")
+                println("[FarimodBilling]    - CourseRegistrationId: $courseRegistrationId")
+                println("[FarimodBilling]    - PaymentType: $paymentType")
+
+                // مرحله ۲: بررسی رایگان بودن ثبت‌نام (FreeRegistration)
+                val isFree = data.bool("FreeRegistration") ||
+                        data.bool("freeRegistration") ||
+                        data["Data"].bool("FreeRegistration") ||
+                        data["Data"].bool("freeRegistration") ||
+                        paymentType.equals("Free", ignoreCase = true)
+
+                if (isFree) {
+                    val msg = data.str("Message") ?: "ثبت‌نام رایگان شما در دوره با موفقیت انجام شد"
+                    println("[FarimodBilling] 🎁 Course is free! Registration completed: $msg")
+                    showToast(msg, "success")
+                    delay(1500)
+                    goHome()
+                    return@launch
+                }
+
+                // مرحله ۳: در صورت رایگان نبودن، هدایت به پرداخت درون‌برنامه‌ای مایکت
+                if (PlatformBilling.isSupported && PlatformBilling.isMarketInstalled) {
+                    val sku = "course$id"
+                    val payload = if (courseRegistrationId != null && courseRegistrationId > 0) {
+                        "reg_${courseRegistrationId}_member_${memberId}"
+                    } else {
+                        "member_${memberId}_course_$id"
+                    }
+                    println("[FarimodBilling] 🛒 Step 3: Launching Myket IAP purchase | SKU=$sku, Payload=$payload")
+                    showToast("در حال باز کردن درگاه پرداخت مایکت...", "info")
+                    PlatformBilling.launchPurchase(sku, payload) { purchaseResult ->
+                        when (purchaseResult) {
+                            is InAppPurchaseResult.Success -> {
+                                val p = purchaseResult.purchase
+                                println("[FarimodBilling] ✅ Step 4: Myket Purchase SUCCESS!")
+                                println("[FarimodBilling]    - SKU: ${p.sku}")
+                                println("[FarimodBilling]    - OrderId: ${p.orderId}")
+                                println("[FarimodBilling]    - Token: ${p.token}")
+                                println("[FarimodBilling]    - Payload: ${p.developerPayload}")
+                                showToast("پرداخت با موفقیت انجام شد. در حال تکمیل ثبت‌نام...", "success")
+                                scope.launch {
+                                    try {
+                                        println("[FarimodBilling] 📤 Step 5: Sending PurchaseToken & CourseRegistrationId to AppMarketCheckCoursePayment...")
+                                        println("[FarimodBilling]    - CourseRegistrationId: $courseRegistrationId")
+                                        println("[FarimodBilling]    - PurchaseToken: ${p.token}")
+
+                                        val checkPaymentResponse = Api.post(
+                                            "CourseRegistration/AppMarketCheckCoursePayment",
+                                            body = jsonOf(
+                                                "CourseRegistrationId" to (courseRegistrationId ?: 0),
+                                                "token" to p.token
+                                            )
+                                        )
+                                        println("[FarimodBilling] 📥 Backend AppMarketCheckCoursePayment response: ok=${checkPaymentResponse.ok}, body=${checkPaymentResponse.json}")
+
+                                        val checkData = checkPaymentResponse.json
+                                        val hasSuccessKey = (checkData as? kotlinx.serialization.json.JsonObject)?.containsKey("Success") == true
+                                        val isSuccess = checkPaymentResponse.ok && (!hasSuccessKey || checkData.bool("Success"))
+
+                                        if (isSuccess) {
+                                            // Consume the purchase in Myket so it can be re-purchased if necessary
+                                            println("[FarimodBilling] 🔄 Step 6: Consuming purchase in Myket | Token=${p.token}...")
+                                            PlatformBilling.consumePurchase(p.token) { success, msg ->
+                                                println("[FarimodBilling] 🏁 Consume result: success=$success, message=$msg")
+                                            }
+
+                                            val successMsg = checkData.str("Message") ?: "ثبت‌نام شما در دوره با موفقیت تایید و تکمیل شد"
+                                            showToast(successMsg, "success")
+                                            delay(1500)
+                                            goHome()
+                                        } else {
+                                            val errorMsg = checkData.str("Message") ?: "خطا در تایید پرداخت توسط سرور"
+                                            println("[FarimodBilling] ❌ AppMarketCheckCoursePayment failed: $errorMsg")
+                                            showToast(errorMsg, "error")
+                                        }
+                                    } catch (e: Exception) {
+                                        println("[FarimodBilling] ⚠️ Exception during AppMarketCheckCoursePayment: ${e.message}")
+                                        showToast("پرداخت در مایکت انجام شد اما خطا در تایید نهایی سرور رخ داد", "warning")
+                                    } finally {
+                                        registering = false
+                                        println("[FarimodBilling] ========================================================")
+                                    }
+                                }
+                            }
+                            is InAppPurchaseResult.UserCancelled -> {
+                                println("[FarimodBilling] ⏹️ Myket Purchase Cancelled by user.")
+                                registering = false
+                                showToast("پرداخت توسط کاربر لغو شد", "info")
+                                println("[FarimodBilling] ========================================================")
+                            }
+                            is InAppPurchaseResult.Error -> {
+                                println("[FarimodBilling] ❌ Myket Purchase ERROR: code=${purchaseResult.code}, message=${purchaseResult.message}")
+                                registering = false
+                                showToast(purchaseResult.message, "error")
+                                println("[FarimodBilling] ========================================================")
+                            }
+                        }
+                    }
+                    return@launch
+                }
+
+                // مرحله ۴: در صورت نسخه وب یا نبود مایکت، باز کردن درگاه پرداخت اختصاصی اینترنتی
+                val gateway = data.str("GatewayURL") ?: data["Data"].str("GatewayURL")
+                if (!gateway.isNullOrBlank()) {
+                    println("[FarimodBilling] 🌐 In-app store billing not active (${AppBuildConfig.activeDistribution.titleFa}). Opening direct web gateway: $gateway")
+                    openUrl(gateway)
+                    showToast("در حال انتقال به درگاه پرداخت...", "info")
+                    registering = false
+                } else {
+                    showToast(data.str("Message") ?: "ثبت‌نام با موفقیت انجام شد", "success")
+                    delay(1500)
+                    goHome()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                showToast("خطا در ثبت‌نام. لطفا دوباره تلاش کنید", "error")
+                registering = false
             }
-            FarimodHttpClient.client.put(
-                "https://developer.myket.ir/api/partners/applications/ir.farimod.app/purchases/products/$id/tokens/$MYKET_TOKEN/consume"
-            )
-        } catch (_: Exception) {
-            showToast("خطا در ثبت‌نام. لطفا دوباره تلاش کنید", "error")
-        } finally {
-            registering = false
         }
     }
 
@@ -522,10 +656,11 @@ fun CourseRegistrationScreen() {
                             }
                         }
                         Column(Modifier.padding(20.dp)) {
-                            PriceLine("قیمت دوره:", toPersianDigits(formatPrice(registerAmount)))
                             if (discountAmount > 0) {
                                 PriceLine("تخفیف:", "- ${toPersianDigits(formatPrice(discountAmount))}", Color(0xFF22C55E))
                             }
+                            PriceLine("قیمت دوره:", if (registerAmount <= 0.0) "رایگان" else toPersianDigits(formatPrice(registerAmount)))
+
                             Box(
                                 Modifier
                                     .absolutePadding(top = 12.dp, bottom = 12.dp)
@@ -533,7 +668,7 @@ fun CourseRegistrationScreen() {
                                     .height(1.dp)
                                     .background(Color(0xFFF3F4F6))
                             )
-                            Row(
+                            RowReverse(
                                 Modifier
                                     .fillMaxWidth()
                                     .padding(top = 4.dp)
@@ -544,17 +679,18 @@ fun CourseRegistrationScreen() {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 AppText(
-                                    text = toPersianDigits(formatPrice(finalPrice)),
-                                    fontSize = 18.sp,
-                                    fontFamily = RNFonts.Yekan_Bakh_Bold,
-                                    color = Color(0xFF667EEA)
-                                )
-                                AppText(
                                     text = "مبلغ قابل پرداخت:",
                                     fontSize = 14.sp,
                                     fontFamily = RNFonts.Yekan_Bakh_Bold,
                                     color = RegDark
                                 )
+                                AppText(
+                                    text = if (finalPrice <= 0.0) "رایگان" else toPersianDigits(formatPrice(finalPrice)),
+                                    fontSize = 18.sp,
+                                    fontFamily = RNFonts.Yekan_Bakh_Bold,
+                                    color = Color(0xFF667EEA)
+                                )
+
                             }
                         }
                     }
@@ -580,7 +716,7 @@ fun CourseRegistrationScreen() {
                         .rnShadow(6.dp, payShape, Color(0xFF2ECC71))
                         .clip(payShape)
                         .touchableOpacity(enabled = active && !registering, activeOpacity = 0.8f) {
-                            scope.launch { register() }
+                            register()
                         }
                 ) {
                     LinearGradient(
@@ -600,15 +736,15 @@ fun CourseRegistrationScreen() {
                                 horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                MaterialIcons("credit-card", size = 22.dp, color = Color.White)
+                                MaterialIcons(if (finalPrice <= 0.0) "check-circle" else "credit-card", size = 22.dp, color = Color.White)
                                 AppText(
-                                    text = if (active) "ثبت‌نام و پرداخت" else "ثبت‌نام غیرفعال",
+                                    text = if (active) (if (finalPrice <= 0.0) "ثبت‌نام رایگان" else "ثبت‌نام و پرداخت") else "ثبت‌نام غیرفعال",
                                     fontSize = 16.sp,
                                     fontFamily = RNFonts.Yekan_Bakh_Bold,
                                     color = Color.White,
                                     textAlign = TextAlign.Center
                                 )
-                                if (active) {
+                                if (active && finalPrice > 0.0) {
                                     AppText(
                                         text = toPersianDigits(formatPrice(finalPrice)),
                                         fontSize = 14.sp,
@@ -627,15 +763,15 @@ fun CourseRegistrationScreen() {
         Box(
             Modifier
                 .align(AbsoluteAlignment.TopRight)
-                .zIndex(10f)
-                .absoluteOffset(x = (-16).dp, y = backTop)
-                .size(40.dp)
+                .zIndex(1000f)
+                .absoluteOffset(x = (-20).dp, y = top + 33.dp)
+                .size(44.dp)
                 .touchableOpacity(activeOpacity = 0.7f) { goHome() }
-                .rnShadow(3.dp, CircleShape)
+                .rnShadow(5.dp, CircleShape)
                 .background(Color.White.copy(alpha = 0.95f), CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            MaterialIcons("arrow-forward", size = 24.dp, color = RegDark)
+            MaterialIcons("arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
         }
 
         Toast(toast.visible, toast.message, toast.type) { toast = toast.copy(visible = false) }
@@ -644,13 +780,13 @@ fun CourseRegistrationScreen() {
 
 @Composable
 private fun PriceLine(label: String, value: String, valueColor: Color = RegDark) {
-    Row(
+    RowReverse(
         Modifier.fillMaxWidth().padding(bottom = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        AppText(text = value, fontSize = 14.sp, fontFamily = RNFonts.Yekan_Bakh_Bold, color = valueColor)
         AppText(text = label, fontSize = 14.sp, fontFamily = RNFonts.Yekan_Bakh_Regular, color = RegMedium)
+        AppText(text = value, fontSize = 14.sp, fontFamily = RNFonts.Yekan_Bakh_Bold, color = valueColor)
     }
 }
 

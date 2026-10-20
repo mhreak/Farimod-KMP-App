@@ -66,7 +66,6 @@ import ir.farimod.app.ui.ToastData
 import ir.farimod.app.ui.rnShadow
 import ir.farimod.app.ui.statusBarHeight
 import ir.farimod.app.ui.touchableOpacity
-import ir.farimod.app.ui.windowSize
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
@@ -88,7 +87,6 @@ fun AllMemberGroupsScreen() {
     val listState = rememberLazyListState()
     val pullState = rememberPullToRefreshState()
     val top = statusBarHeight()
-    val itemWidth = (windowSize().first - 64.dp) / 3
     val busy = remember { mutableStateOf(false) }
 
     fun showToast(message: String, type: String = "info") {
@@ -214,7 +212,7 @@ fun AllMemberGroupsScreen() {
                         LazyColumn(
                             state = listState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 20.dp)
+                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 20.dp)
                         ) {
                             if (!skeleton && groups.isEmpty() && !loading) {
                                 item(key = "empty") {
@@ -231,12 +229,12 @@ fun AllMemberGroupsScreen() {
                                 RowReverse(
                                     Modifier
                                         .fillMaxWidth()
-                                        .absolutePadding(left = 8.dp, right = 8.dp)
-                                        .padding(bottom = 20.dp),
-                                    horizontalArrangement = Arrangement.Start
+                                        .padding(bottom = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     row.forEach { cell ->
-                                        Box(Modifier.absolutePadding(left = 6.dp, right = 6.dp).width(itemWidth)) {
+                                        Box(Modifier.weight(1f)) {
                                             if (cell == null) {
                                                 MemberGroupSkeleton()
                                             } else {
@@ -254,7 +252,7 @@ fun AllMemberGroupsScreen() {
                                         }
                                     }
                                     repeat(3 - row.size) {
-                                        Spacer(Modifier.absolutePadding(left = 6.dp, right = 6.dp).width(itemWidth))
+                                        Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }

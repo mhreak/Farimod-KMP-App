@@ -60,6 +60,7 @@ import ir.farimod.app.network.get
 import ir.farimod.app.network.int
 import ir.farimod.app.network.str
 import ir.farimod.app.network.with
+import ir.farimod.app.screens.mag.MagBlogEventBus
 import ir.farimod.app.screens.magdetailes.MagDetailCover
 import ir.farimod.app.screens.magdetailes.MagDetailSkeleton
 import ir.farimod.app.screens.magdetailes.MagHtmlContent
@@ -282,9 +283,18 @@ fun MagDetailesScreen() {
         if (isLiking) return
         val prevLiked = isLiked
         val prevCount = likeCount
+        val newLiked = !prevLiked
+        val newCount = prevCount + if (!prevLiked) 1 else -1
+
         isLiking = true
-        isLiked = !prevLiked
-        likeCount = prevCount + if (!prevLiked) 1 else -1
+        isLiked = newLiked
+        likeCount = newCount
+
+        val postId = post.int("BlogPostId") ?: post.str("BlogPostId")?.toIntOrNull()
+        if (postId != null) {
+            MagBlogEventBus.notifyBlogPostLiked(postId, newLiked, newCount)
+        }
+
         scope.launch {
             try {
                 val response = Api.post(
@@ -300,6 +310,9 @@ fun MagDetailesScreen() {
             } catch (e: Exception) {
                 isLiked = prevLiked
                 likeCount = prevCount
+                if (postId != null) {
+                    MagBlogEventBus.notifyBlogPostLiked(postId, prevLiked, prevCount)
+                }
                 toast.showToast("خطا در ثبت لایک", "error")
             } finally {
                 isLiking = false

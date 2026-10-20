@@ -45,12 +45,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import ir.farimod.app.components.icons.MaterialIcons
 import ir.farimod.app.hooks.useToast
+import ir.farimod.app.navigation.useFocusEffect
 import ir.farimod.app.navigation.useNavigation
 import ir.farimod.app.navigation.useRoute
 import ir.farimod.app.network.int
 import ir.farimod.app.network.str
 import ir.farimod.app.screens.mag.MagBlogImage
 import ir.farimod.app.screens.mag.MagBlogCategoriesState
+import ir.farimod.app.screens.mag.MagBlogEventBus
 import ir.farimod.app.screens.mag.MagBlogPostCardSkeleton
 import ir.farimod.app.screens.mag.MagBlogPostsState
 import ir.farimod.app.screens.mag.magFilterValueActive
@@ -109,17 +111,32 @@ fun MagScreen() {
         onDispose { categoriesState.dispose() }
     }
 
+    useFocusEffect {
+        if (jsTruthy(filteredMemberId) && filterType == "member") {
+            val memberFilter = mapOf<String, Any?>("filterMemberId" to filteredMemberId)
+            appliedFilters = memberFilter
+            hasActiveFilters = true
+            posts.fetchBlogPosts(1, MAG_PAGE_SIZE, memberFilter)
+        } else {
+            posts.fetchBlogPosts(1, MAG_PAGE_SIZE, appliedFilters)
+        }
+        categoriesState.fetchCategories()
+    }
+
+    LaunchedEffect(MagBlogEventBus.lastLikedBlogPostId, MagBlogEventBus.lastLikeCount) {
+        val id = MagBlogEventBus.lastLikedBlogPostId ?: return@LaunchedEffect
+        val count = MagBlogEventBus.lastLikeCount ?: return@LaunchedEffect
+        val liked = MagBlogEventBus.lastLikedState
+        posts.updateBlogPostLike(id, liked, count)
+    }
+
     LaunchedEffect(filteredMemberId) {
         if (jsTruthy(filteredMemberId) && filterType == "member") {
             val memberFilter = mapOf<String, Any?>("filterMemberId" to filteredMemberId)
             appliedFilters = memberFilter
             hasActiveFilters = true
-            launch { posts.fetchBlogPosts(1, MAG_PAGE_SIZE, memberFilter) }
             toast.showToast("نمایش مقالات ${filteredMemberName ?: "undefined"}", "info")
-        } else {
-            launch { posts.fetchBlogPosts(1, MAG_PAGE_SIZE) }
         }
-        launch { categoriesState.fetchCategories() }
     }
 
     LaunchedEffect(posts.error) {

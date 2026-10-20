@@ -6,9 +6,10 @@ import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 
-/** Set once from MainActivity so that non-composable helpers (openUrl, pickers) can reach a Context. */
+/** Set once from MainActivity so that non-composable helpers (openUrl, pickers, billing) can reach a Context & Activity. */
 object AndroidAppContext {
     lateinit var appContext: Context
+    var currentActivity: android.app.Activity? = null
 }
 
 actual val isIOS: Boolean = false
@@ -39,4 +40,22 @@ actual fun canOpenUrl(url: String): Boolean {
 @Composable
 actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
     BackHandler(enabled = enabled, onBack = onBack)
+}
+
+actual fun getAppVersionName(): String {
+    return try {
+        val context = AndroidAppContext.appContext
+        val packageInfo = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            context.packageManager.getPackageInfo(
+                context.packageName,
+                android.content.pm.PackageManager.PackageInfoFlags.of(0)
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.packageManager.getPackageInfo(context.packageName, 0)
+        }
+        packageInfo.versionName ?: "1.0.0"
+    } catch (_: Exception) {
+        "1.0.0"
+    }
 }

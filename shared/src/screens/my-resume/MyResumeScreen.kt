@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import ir.farimod.app.components.icons.MaterialIcons
 import ir.farimod.app.navigation.Tabs
 import ir.farimod.app.navigation.useNavigation
@@ -176,7 +177,7 @@ fun MyResumeScreen() {
     }
 
     fun goProfile() {
-        navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile))
+        navigation.goBack()
     }
 
     fun openFile(url: String) {
@@ -291,8 +292,11 @@ fun MyResumeScreen() {
         Box(Modifier.fillMaxSize().background(pageColor)) {
             MainBackground()
             ResumeBackButton(
-                onClick = { goHome() },
-                modifier = Modifier.align(AbsoluteAlignment.TopRight).absoluteOffset(x = (-20).dp, y = sbh + 30.dp - 32.dp)
+                onClick = { navigation.goBack() },
+                modifier = Modifier
+                    .align(AbsoluteAlignment.TopRight)
+                    .zIndex(1000f)
+                    .absoluteOffset(x = (-20).dp, y = sbh + 33.dp)
             )
             ResumeMessageState(
                 icon = "error",
@@ -332,8 +336,11 @@ fun MyResumeScreen() {
         Box(Modifier.fillMaxSize().background(pageColor)) {
             MainBackground()
             ResumeBackButton(
-                onClick = { goHome() },
-                modifier = Modifier.align(AbsoluteAlignment.TopRight).absoluteOffset(x = (-20).dp, y = sbh + 30.dp - 32.dp)
+                onClick = { navigation.goBack() },
+                modifier = Modifier
+                    .align(AbsoluteAlignment.TopRight)
+                    .zIndex(1000f)
+                    .absoluteOffset(x = (-20).dp, y = sbh + 33.dp)
             )
             ResumeMessageState(
                 icon = "folder",
@@ -348,33 +355,32 @@ fun MyResumeScreen() {
         Box(Modifier.fillMaxSize().background(pageColor)) {
             MainBackground()
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                Box(Modifier.fillMaxWidth()) {
-                    Column(Modifier.fillMaxWidth()) {
-                        Spacer(Modifier.fillMaxWidth().height(sbh + 80.dp + 30.dp))
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .absolutePadding(left = 20.dp, right = 20.dp)
-                                .padding(bottom = 30.dp)
-                                .resumePullUp(40.dp)
-                        ) {
-                            ResumeSectionTitle("فایل ها و مدارک")
-                        }
-                        Column(Modifier.absolutePadding(left = 20.dp, right = 20.dp)) {
-                            repeat(3) { index ->
-                                key(index) { ResumeSkeletonCard() }
-                            }
-                        }
-                        Spacer(Modifier.height(50.dp))
-                    }
-                    ResumeBackButton(
-                        onClick = { goHome() },
-                        modifier = Modifier
-                            .align(AbsoluteAlignment.TopRight)
-                            .absoluteOffset(x = (-20).dp, y = sbh + 30.dp - 32.dp)
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = sbh + 35.dp, bottom = 30.dp)
+                        .absolutePadding(left = 20.dp, right = 20.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ResumeSectionTitle(
+                        "فایل ها و مدارک",
+                        modifier = Modifier.fillMaxWidth().absolutePadding(left = 56.dp, right = 56.dp)
                     )
                 }
+                Column(Modifier.absolutePadding(left = 20.dp, right = 20.dp)) {
+                    repeat(3) { index ->
+                        key(index) { ResumeSkeletonCard() }
+                    }
+                }
+                Spacer(Modifier.height(50.dp))
             }
+            ResumeBackButton(
+                onClick = { navigation.goBack() },
+                modifier = Modifier
+                    .align(AbsoluteAlignment.TopRight)
+                    .zIndex(1000f)
+                    .absoluteOffset(x = (-20).dp, y = sbh + 33.dp)
+            )
         }
         return
     }
@@ -382,20 +388,16 @@ fun MyResumeScreen() {
     Box(Modifier.fillMaxSize().background(pageColor)) {
         MainBackground()
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            Spacer(Modifier.fillMaxWidth().height(sbh + 80.dp + 30.dp))
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .absolutePadding(left = 20.dp, right = 20.dp)
-                    .padding(bottom = 30.dp)
-                    .resumePullUp(40.dp)
+                    .padding(top = sbh + 35.dp, bottom = 30.dp)
+                    .absolutePadding(left = 20.dp, right = 20.dp),
+                contentAlignment = Alignment.Center
             ) {
-                ResumeSectionTitle("فایل ها و مدارک")
-                ResumeBackButton(
-                    onClick = { goProfile() },
-                    modifier = Modifier
-                        .align(AbsoluteAlignment.TopRight)
-                        .absoluteOffset(x = (-20).dp, y = sbh + 30.dp - 32.dp)
+                ResumeSectionTitle(
+                    "فایل ها و مدارک",
+                    modifier = Modifier.fillMaxWidth().absolutePadding(left = 56.dp, right = 56.dp)
                 )
             }
             Column(Modifier.absolutePadding(left = 20.dp, right = 20.dp)) {
@@ -420,6 +422,13 @@ fun MyResumeScreen() {
             }
             Spacer(Modifier.height(50.dp))
         }
+        ResumeBackButton(
+            onClick = { navigation.goBack() },
+            modifier = Modifier
+                .align(AbsoluteAlignment.TopRight)
+                .zIndex(1000f)
+                .absoluteOffset(x = (-20).dp, y = sbh + 33.dp)
+        )
         key(toastToken) {
             Toast(toast.visible, toast.message, toast.type) { toast = toast.copy(visible = false) }
         }

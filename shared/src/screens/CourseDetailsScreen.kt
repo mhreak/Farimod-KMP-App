@@ -92,6 +92,7 @@ import ir.farimod.app.utils.jsNumberToString
 import ir.farimod.app.utils.jsToFixed
 import ir.farimod.app.utils.jsToNumber
 import ir.farimod.app.utils.jsTruthy
+import ir.farimod.app.utils.safeNumber
 import ir.farimod.app.utils.toPersianDigits
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -555,9 +556,10 @@ fun CourseDetailsScreen() {
                                     CoachesDetail(coaches, (screenW - 60.dp) / 2.5f)
                                 }
                                 val amount = data["RegisterAmount"]
+                                val amountNum = safeNumber(amount)
                                 SmartDetail(
                                     label = "هزینه ثبت نام",
-                                    value = if (jsTruthy(amount)) formatPrice(amount) else null,
+                                    value = if (amountNum <= 0.0) "رایگان" else formatPrice(amount),
                                     icon = "attach-money",
                                     maxLength = 30
                                 )

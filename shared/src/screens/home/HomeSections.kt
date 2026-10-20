@@ -17,7 +17,9 @@ import ir.farimod.app.hooks.useFetchData
 import ir.farimod.app.hooks.useImageGalleries
 import ir.farimod.app.hooks.useMemberGroups
 import ir.farimod.app.hooks.usePortfolios
+import ir.farimod.app.navigation.useFocusEffect
 import ir.farimod.app.navigation.useNavigation
+import ir.farimod.app.screens.mag.MagBlogEventBus
 import ir.farimod.app.network.str
 import ir.farimod.app.theme.FarimodColors
 import ir.farimod.app.ui.CourseCard
@@ -146,6 +148,17 @@ fun HomeBlogSection(showToast: (String, String) -> Unit) {
     val navigation = useNavigation()
     val state = useBlogPosts()
     val posts = state.data.asReversed()
+
+    useFocusEffect {
+        state.refetch()
+    }
+
+    LaunchedEffect(MagBlogEventBus.lastLikedBlogPostId, MagBlogEventBus.lastLikeCount) {
+        if (MagBlogEventBus.lastLikedBlogPostId != null) {
+            state.refetch()
+        }
+    }
+
     LaunchedEffect(state.error) {
         if (state.error != null) showToast("خطا در دریافت اطلاعات مقالات. لطفاً دوباره تلاش کنید.", "error")
     }

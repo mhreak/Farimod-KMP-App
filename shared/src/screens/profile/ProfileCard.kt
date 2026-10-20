@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import ir.farimod.app.components.icons.MaterialIcons
 import ir.farimod.app.data.model.UserData
 import ir.farimod.app.services.PermissionService
@@ -95,16 +96,19 @@ internal fun ProfileCard(
                         color = if (hasPermission) item.color else Color(0xFF999999)
                     )
                     if (!hasPermission) {
-                        // lockOverlay: top -5, right -5 (relative to the padding box, inside the 2dp border)
+                        // lockOverlay: top -5, right -5 on top layer
                         Box(
                             modifier = Modifier
                                 .align(AbsoluteAlignment.TopRight)
+                                .zIndex(100f)
                                 .absoluteOffset(x = 5.dp, y = (-5).dp)
-                                .size(24.dp)
-                                .background(Color(0xFFFF4444), CircleShape),
+                                .size(26.dp)
+                                .rnShadow(4.dp, CircleShape, Color(0xFFFF4444))
+                                .background(Color(0xFFFF4444), CircleShape)
+                                .border(2.dp, Color.White, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            MaterialIcons(name = "lock", size = 16.dp, color = Color(0xFFFFFFFF))
+                            MaterialIcons(name = "lock", size = 15.dp, color = Color(0xFFFFFFFF))
                         }
                     }
                 }

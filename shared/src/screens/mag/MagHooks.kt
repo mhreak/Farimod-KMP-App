@@ -7,6 +7,8 @@ import ir.farimod.app.network.Api
 import ir.farimod.app.network.get
 import ir.farimod.app.network.int
 import ir.farimod.app.network.list
+import ir.farimod.app.network.str
+import ir.farimod.app.network.with
 import ir.farimod.app.utils.jsTruthy
 import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject
@@ -80,6 +82,29 @@ internal class MagBlogPostsState {
         if (!loadingRef && hasMore) {
             fetchBlogPosts(page + 1, 10, filters)
         }
+    }
+
+    fun updateBlogPostLike(postId: Int, isLiked: Boolean, newLikeCount: Int) {
+        data = data.map { post ->
+            val id = post.int("BlogPostId") ?: post.str("BlogPostId")?.toIntOrNull()
+            if (id == postId) {
+                post.with("IsMemberLiked" to isLiked, "LikeCount" to newLikeCount)
+            } else {
+                post
+            }
+        }
+    }
+}
+
+internal object MagBlogEventBus {
+    var lastLikedBlogPostId by mutableStateOf<Int?>(null)
+    var lastLikedState by mutableStateOf(false)
+    var lastLikeCount by mutableStateOf<Int?>(null)
+
+    fun notifyBlogPostLiked(postId: Int, liked: Boolean, count: Int) {
+        lastLikedBlogPostId = postId
+        lastLikedState = liked
+        lastLikeCount = count
     }
 }
 

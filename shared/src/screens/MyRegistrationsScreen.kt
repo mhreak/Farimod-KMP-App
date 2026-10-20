@@ -287,14 +287,12 @@ fun MyRegistrationsScreen() {
                 .zIndex(1000f)
                 .absoluteOffset(x = (-20).dp, y = top + 33.dp)
                 .size(44.dp)
-                .touchableOpacity {
-                    navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile))
-                }
-                .rnShadow(8.dp, circle, RegPurple)
-                .background(RegPurple, circle),
+                .touchableOpacity { navigation.goBack() }
+                .rnShadow(5.dp, circle)
+                .background(Color.White.copy(alpha = 0.9f), circle),
             contentAlignment = Alignment.Center
         ) {
-            MaterialIcons("arrow-forward", size = 24.dp, color = Color.White)
+            MaterialIcons("arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
         }
 
         Toast(toast.visible, toast.message, toast.type) { toast = toast.copy(visible = false) }

@@ -306,11 +306,39 @@ internal fun validateCourseDraft(d: CourseDraft): String? {
 
 internal suspend fun fetchCourseProvinces(): Pair<List<PickerOption>, String?> {
     return try {
-        val response = Api.get("Province/GetAllActive", query = mapOf("pageSize" to 10000))
-        if (!response.ok) return emptyList<PickerOption>() to "خطا در دریافت لیست استان‌ها"
-        val itemsEl = response.json["Items"]
-        if (itemsEl !is JsonArray) return emptyList<PickerOption>() to "خطا در دریافت لیست استان‌ها"
-        val items = itemsEl.list.map { province ->
+        var currentPage = 1
+        val pageSize = 20
+        val allProvinces = mutableListOf<JsonElement>()
+        while (true) {
+            val response = Api.get(
+                "Province/GetAllActive",
+                query = mapOf(
+                    "currentPage" to currentPage,
+                    "page" to currentPage,
+                    "pageSize" to pageSize
+                )
+            )
+            if (!response.ok) {
+                if (allProvinces.isEmpty()) return emptyList<PickerOption>() to "خطا در دریافت لیست استان‌ها"
+                break
+            }
+            val result = response.json ?: break
+            val items = when {
+                result is JsonArray -> result
+                result["Items"] is JsonArray -> result["Items"]
+                result["Data"] is JsonArray -> result["Data"]
+                else -> null
+            } as? JsonArray ?: break
+
+            val list = items.list
+            allProvinces.addAll(list)
+            val total = result["Total"].int ?: result["TotalCount"].int ?: result["TotalItems"].int ?: allProvinces.size
+            if (list.size < pageSize || allProvinces.size >= total) {
+                break
+            }
+            currentPage++
+        }
+        val items = allProvinces.map { province ->
             PickerOption(
                 label = province.str("ProvinceName").orEmpty(),
                 value = province["ProvinceId"].int ?: 0
@@ -326,18 +354,41 @@ internal suspend fun fetchCourseProvinces(): Pair<List<PickerOption>, String?> {
 
 internal suspend fun fetchCourseCities(provinceId: Int): Pair<List<PickerOption>, String?> {
     return try {
-        val response = Api.get(
-            "City/GetAllActiveByProvinceId",
-            query = mapOf("provinceId" to provinceId, "page" to 1, "pageSize" to 2000000)
-        )
-        if (!response.ok) return emptyList<PickerOption>() to "خطا در دریافت لیست شهرها"
-        val itemsEl = response.json["Items"]
-        val items = if (itemsEl is JsonArray) {
-            itemsEl.list.map { city ->
-                PickerOption(label = city.str("CityName").orEmpty(), value = city["CityId"].int ?: 0)
+        var currentPage = 1
+        val pageSize = 20
+        val allCities = mutableListOf<JsonElement>()
+        while (true) {
+            val response = Api.get(
+                "City/GetAllActiveByProvinceId",
+                query = mapOf(
+                    "provinceId" to provinceId,
+                    "currentPage" to currentPage,
+                    "page" to currentPage,
+                    "pageSize" to pageSize
+                )
+            )
+            if (!response.ok) {
+                if (allCities.isEmpty()) return emptyList<PickerOption>() to "خطا در دریافت لیست شهرها"
+                break
             }
-        } else {
-            emptyList()
+            val result = response.json ?: break
+            val items = when {
+                result is JsonArray -> result
+                result["Items"] is JsonArray -> result["Items"]
+                result["Data"] is JsonArray -> result["Data"]
+                else -> null
+            } as? JsonArray ?: break
+
+            val list = items.list
+            allCities.addAll(list)
+            val total = result["Total"].int ?: result["TotalCount"].int ?: result["TotalItems"].int ?: allCities.size
+            if (list.size < pageSize || allCities.size >= total) {
+                break
+            }
+            currentPage++
+        }
+        val items = allCities.map { city ->
+            PickerOption(label = city.str("CityName").orEmpty(), value = city["CityId"].int ?: 0)
         }
         items to null
     } catch (e: CancellationException) {

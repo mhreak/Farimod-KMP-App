@@ -264,10 +264,10 @@ fun CourseRegistrationCard(
                                 )
                             }
                             AppText(
-                                text = formatPrice(courseRegisterAmount),
+                                text = if (courseRegisterAmount <= 0.0) "رایگان" else formatPrice(courseRegisterAmount),
                                 fontFamily = RNFonts.Yekan_Bakh_Bold,
                                 fontSize = 11.sp,
-                                color = colors.Primary
+                                color = if (courseRegisterAmount <= 0.0) Color(0xFF10B981) else colors.Primary
                             )
                         }
 
@@ -316,7 +316,7 @@ fun CourseRegistrationCard(
                                 )
                             }
                             AppText(
-                                text = formatPrice(totalAmount),
+                                text = if (totalAmount <= 0.0) "رایگان" else formatPrice(totalAmount),
                                 fontFamily = RNFonts.Yekan_Bakh_Bold,
                                 fontSize = 12.sp,
                                 color = Color(0xFF2ECC71)

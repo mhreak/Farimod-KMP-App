@@ -140,7 +140,7 @@ fun AddNewCourseScreen() {
     }
 
     fun goTeaching() {
-        navigation.navigate("MyTeachingCourses")
+        navigation.goBack()
     }
 
     LaunchedEffect(Unit) {

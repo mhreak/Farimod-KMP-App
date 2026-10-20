@@ -260,7 +260,7 @@ fun AddNewPostScreen() {
     }
 
     fun goMyPosts() {
-        navigation.navigate("MyPosts")
+        navigation.goBack()
     }
 
     fun submit() {

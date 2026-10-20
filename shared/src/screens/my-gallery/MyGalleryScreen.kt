@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -160,6 +161,19 @@ fun MyGalleryScreen() {
                     color = FarimodColors.Medium
                 )
             }
+            Box(
+                Modifier
+                    .align(AbsoluteAlignment.TopRight)
+                    .zIndex(1000f)
+                    .absoluteOffset(x = (-20).dp, y = statusTop + 33.dp)
+                    .size(44.dp)
+                    .touchableOpacity { navigation.goBack() }
+                    .rnShadow(5.dp, CircleShape)
+                    .background(Color.White.copy(alpha = 0.9f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                MaterialIcons("arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
+            }
         }
         return
     }
@@ -171,41 +185,21 @@ fun MyGalleryScreen() {
                 Modifier
                     .fillMaxWidth()
                     .padding(top = statusTop + 35.dp, bottom = 20.dp)
-                    .absolutePadding(left = 20.dp, right = 20.dp)
+                    .absolutePadding(left = 20.dp, right = 20.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    Modifier
-                        .align(AbsoluteAlignment.CenterLeft)
-                        .padding(top = 8.dp)
-                        .size(50.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF4CAF50))
-                        .touchableOpacity {
-                            navigation.navigate(
-                                "AddGallery",
-                                mapOf(
-                                    "memberId" to user?.MemberId,
-                                    "memberName" to ""
-                                )
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    MaterialIcons(name = "add", size = 26.dp, color = Color.White)
-                }
                 AppText(
                     text = "گالری های من",
-                    modifier = Modifier.fillMaxWidth()
-                        .align(Alignment.Center)
-                        .padding(top = 40.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .absolutePadding(left = 56.dp, right = 56.dp),
                     fontSize = 22.sp,
                     fontFamily = RNFonts.Yekan_Bakh_ExtraBold,
                     color = Color(0xFF2C3E50),
-                    textAlign = TextAlign.Center
-                ,
+                    textAlign = TextAlign.Center,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             PullToRefreshBox(
@@ -300,17 +294,38 @@ fun MyGalleryScreen() {
             Modifier
                 .align(AbsoluteAlignment.TopRight)
                 .zIndex(1000f)
-                .offset(x = (-20).dp, y = statusTop + 80.dp - 17.dp)
-                .size(50.dp)
+                .absoluteOffset(x = (-20).dp, y = statusTop + 33.dp)
+                .size(44.dp)
                 .rnShadow(5.dp, CircleShape)
                 .clip(CircleShape)
                 .background(Color.White.copy(alpha = 0.9f))
+                .touchableOpacity { navigation.goBack() },
+            contentAlignment = Alignment.Center
+        ) {
+            MaterialIcons(name = "arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
+        }
+
+        Box(
+            Modifier
+                .align(AbsoluteAlignment.TopLeft)
+                .zIndex(1000f)
+                .absoluteOffset(x = 20.dp, y = statusTop + 33.dp)
+                .size(44.dp)
+                .rnShadow(6.dp, CircleShape, Color(0xFF4CAF50))
+                .clip(CircleShape)
+                .background(Color(0xFF4CAF50))
                 .touchableOpacity {
-                    navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile))
+                    navigation.navigate(
+                        "AddGallery",
+                        mapOf(
+                            "memberId" to user?.MemberId,
+                            "memberName" to ""
+                        )
+                    )
                 },
             contentAlignment = Alignment.Center
         ) {
-            MaterialIcons(name = "arrow-forward", size = 26.dp, color = Color(0xFF6366F1))
+            MaterialIcons(name = "add", size = 24.dp, color = Color.White)
         }
     }
 }

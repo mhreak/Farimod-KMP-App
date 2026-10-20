@@ -520,7 +520,7 @@ fun AddPortfolioScreen() {
                             Modifier
                                 .border(1.dp, rgba(255, 206, 232, 0.5f), RoundedCornerShape(25.dp))
                                 .background(Color(0xFF9E22AD), RoundedCornerShape(25.dp))
-                                .touchableOpacity { navigation.navigate("PortfolioList") }
+                                .touchableOpacity { navigation.goBack() }
                                 .padding(10.dp)
                         ) {
                             MaterialIcons("arrow-forward", size = 24.dp, color = Color.White)

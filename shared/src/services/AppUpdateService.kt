@@ -5,26 +5,38 @@ import ir.farimod.app.network.ApiNetworkException
 import ir.farimod.app.network.bool
 import ir.farimod.app.network.double
 import ir.farimod.app.network.str
+import ir.farimod.app.platform.AppBuildConfig
+import ir.farimod.app.platform.getAppVersionName
 import kotlinx.coroutines.CancellationException
 
 /** Port of `app/config/appInfo.js`. */
 object AppInfo {
     const val name = "farimod"
     const val slug = "farimod-2"
-    const val version = "1.46.0"
-    const val versionNumber = 1.46
-    const val packageName = "com.yeganeh0.farimod2"
+    val version: String get() = getAppVersionName()
+    val versionNumber: Double
+        get() {
+            val ver = getAppVersionName()
+            val twoParts = ver.split('.').take(2).joinToString(".")
+            return twoParts.toDoubleOrNull() ?: 1.0
+        }
+    const val packageName = "ir.farimod.app"
     const val owner = "yeganeh0"
 
     object Stores {
         object CafeBazar {
-            const val app = "bazaar://details?id=com.yeganeh0.farimod2"
-            const val web = "https://cafebazaar.ir/app/com.yeganeh0.farimod2"
+            const val app = "bazaar://details?id=ir.farimod.app"
+            const val web = "https://cafebazaar.ir/app/ir.farimod.app"
         }
 
         object GooglePlay {
-            const val app = "market://details?id=com.yeganeh0.farimod2"
-            const val web = "https://play.google.com/store/apps/details?id=com.yeganeh0.farimod2"
+            const val app = "market://details?id=ir.farimod.app"
+            const val web = "https://play.google.com/store/apps/details?id=ir.farimod.app"
+        }
+
+        object Myket {
+            const val app = "myket://details?id=ir.farimod.app"
+            const val web = "https://myket.ir/app/ir.farimod.app"
         }
     }
 
@@ -56,16 +68,19 @@ data class AppUpdateMessage(val title: String, val message: String, val type: St
 
 /** Port of `app/services/AppUpdateService.js`. */
 object AppUpdateService {
-    private const val APP_VERSION = 1.46
-
-    fun getCurrentAppVersion(): Double = APP_VERSION
+    fun getCurrentAppVersion(): Double = AppInfo.versionNumber
 
     /** `apiService.get("AppRun/NotifyAppRun", { params: { memberId, mobileAppVersion } })` (no auth header, 30s timeout). */
     suspend fun checkForUpdate(memberId: Int): AppUpdateCheckResult {
+        val currentVersion = getCurrentAppVersion()
         return try {
             val response = Api.get(
                 AppInfo.ApiConfig.updateCheck,
-                query = mapOf("memberId" to memberId, "mobileAppVersion" to APP_VERSION),
+                query = mapOf(
+                    "memberId" to memberId,
+                    "mobileAppVersion" to currentVersion,
+                    "downloadSource" to AppBuildConfig.downloadSource
+                ),
                 timeoutMs = 30_000
             )
 

@@ -42,7 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.farimod.app.components.icons.MaterialCommunityIcons
 import ir.farimod.app.components.icons.MaterialIcons
+import ir.farimod.app.platform.getAppVersionName
 import ir.farimod.app.platform.openUrl
+import ir.farimod.app.utils.toPersianDigits
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
@@ -352,8 +354,9 @@ fun MenuModal(
                         fontFamily = RNFonts.Yekan_Bakh_Regular
                     )
                 }
+                val appVersion = remember { getAppVersionName() }
                 AppText(
-                    "نسخه 1.46",
+                    "نسخه ${toPersianDigits(appVersion)}",
                     fontSize = 13.sp,
                     color = Color(0xFF9CA3AF),
                     fontFamily = RNFonts.Yekan_Bakh_Regular

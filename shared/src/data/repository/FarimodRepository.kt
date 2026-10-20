@@ -479,6 +479,27 @@ class FarimodRepository(
         )
     }
 
+    suspend fun appMarketCheckSubscriptionPlanPayment(
+        memberSubscriptionId: Int,
+        token: String
+    ): AppMarketCheckSubscriptionPaymentResponse {
+        val request = AppMarketCheckSubscriptionPaymentRequest(
+            MemberSubscriptionId = memberSubscriptionId,
+            Token = token,
+            PurchaseToken = token
+        )
+        val result: ApiResult<AppMarketCheckSubscriptionPaymentResponse> = safeApiCall {
+            client.post("SubscriptionPlan/AppMarketCheckSubscriptionPlanPayment") {
+                header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                setBody(request)
+            }
+        }
+        if (result is ApiResult.Success) {
+            return result.data
+        }
+        return AppMarketCheckSubscriptionPaymentResponse(Success = false, Message = "خطا در تایید پرداخت اشتراک")
+    }
+
     suspend fun getGalleries(memberId: Int, page: Int = 1, pageSize: Int = 20): List<GalleryItemDto> {
         val result: ApiResult<GalleryResponseDto> = safeApiCall {
             client.get("ImageGallery/GetAll") {
@@ -690,7 +711,7 @@ class FarimodRepository(
 
     suspend fun getProvinces(): List<ProvinceDto> {
         val result: ApiResult<ProvinceResponseDto> = safeApiCall {
-            client.get("Province/GetAllActive?page=1&pageSize=1000")
+            client.get("Province/GetAllActive")
         }
 
         if (result is ApiResult.Success && result.data.Items.isNotEmpty()) {
@@ -713,7 +734,7 @@ class FarimodRepository(
 
     suspend fun getCities(provinceId: Int): List<CityDto> {
         val result: ApiResult<CityResponseDto> = safeApiCall {
-            client.get("City/GetAllActiveByProvinceId?provinceId=&page=1&pageSize=1000")
+            client.get("City/GetAllActiveByProvinceId?provinceId=$provinceId")
         }
 
         if (result is ApiResult.Success && result.data.Items.isNotEmpty()) {
@@ -1245,6 +1266,26 @@ class FarimodRepository(
             return result.data
         }
         return CourseRegisterResponse(Success = false, Message = "خطا در ارتباط با سرور")
+    }
+
+    suspend fun appMarketCheckCoursePayment(
+        courseRegistrationId: Int,
+        purchaseToken: String
+    ): AppMarketCheckCoursePaymentResponse {
+        val request = AppMarketCheckCoursePaymentRequest(
+            CourseRegistrationId = courseRegistrationId,
+            PurchaseToken = purchaseToken
+        )
+        val result: ApiResult<AppMarketCheckCoursePaymentResponse> = safeApiCall {
+            client.post("CourseRegistration/AppMarketCheckCoursePayment") {
+                header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                setBody(request)
+            }
+        }
+        if (result is ApiResult.Success) {
+            return result.data
+        }
+        return AppMarketCheckCoursePaymentResponse(Success = false, Message = "خطا در تایید پرداخت مارکت")
     }
 
     // ==================== MEMBER DOCUMENTS (RESUME) ====================

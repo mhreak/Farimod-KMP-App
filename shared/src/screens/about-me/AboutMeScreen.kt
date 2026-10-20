@@ -351,7 +351,7 @@ fun AboutMeScreen() {
     }
 
     val sbh = statusBarHeight()
-    val headerTop = if (sbh > 0.dp) sbh + 16.dp else 60.dp
+    val headerTop = sbh + 35.dp
 
     Box(Modifier.fillMaxSize().background(Color(0xFFF8FAFC))) {
         MainBackground()
@@ -366,7 +366,8 @@ fun AboutMeScreen() {
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .padding(top = 75.dp, bottom = 30.dp),
+                            .padding(top = headerTop, bottom = 30.dp)
+                            .absolutePadding(left = 20.dp, right = 20.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         AppText(
@@ -375,29 +376,28 @@ fun AboutMeScreen() {
                             fontSize = 22.sp,
                             fontFamily = RNFonts.Yekan_Bakh_ExtraBold,
                             color = Color(0xFF2C3E50),
-                            textAlign = TextAlign.Center
-                        ,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                     Column(Modifier.fillMaxWidth().absolutePadding(left = 20.dp, right = 20.dp)) {
-                        if (profile.provinceName.isNotEmpty() || profile.cityName.isNotEmpty()) {
-                            val location = when {
-                                profile.provinceName.isNotEmpty() && profile.cityName.isNotEmpty() ->
-                                    "${profile.provinceName}، ${profile.cityName}"
-                                profile.provinceName.isNotEmpty() -> profile.provinceName
-                                else -> profile.cityName
-                            }
-                            AboutMeInfoCard(
-                                iconName = "location-on",
-                                iconType = "location",
-                                label = "موقعیت مکانی",
-                                showEdit = true,
-                                editEnabled = !loading,
-                                onEdit = { openContactEdit() }
-                            ) {
-                                AboutMeValueText(location)
-                            }
+                        val location = when {
+                            profile.provinceName.isNotEmpty() && profile.cityName.isNotEmpty() ->
+                                "${profile.provinceName}، ${profile.cityName}"
+                            profile.provinceName.isNotEmpty() -> profile.provinceName
+                            profile.cityName.isNotEmpty() -> profile.cityName
+                            else -> "ثبت موقعیت مکانی و اطلاعات تماس"
+                        }
+                        AboutMeInfoCard(
+                            iconName = "location-on",
+                            iconType = "location",
+                            label = "ویرایش اطلاعات",
+                            showEdit = true,
+                            editEnabled = !loading,
+                            onEdit = { openContactEdit() }
+                        ) {
+                            AboutMeValueText(location)
                         }
                         if (profile.address.isNotEmpty()) {
                             AboutMeInfoCard("home", "address", "آدرس", true, !loading, { openContactEdit() }) {
@@ -556,22 +556,22 @@ fun AboutMeScreen() {
                     }
                     Spacer(Modifier.height(50.dp))
                 }
-                AboutMeBackButton(
-                    onClick = { navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile)) },
-                    modifier = Modifier
-                        .align(AbsoluteAlignment.TopRight)
-                        .absoluteOffset(x = (-20).dp, y = headerTop)
-                        .zIndex(1000f)
-                )
-                Box(
-                    Modifier
-                        .align(AbsoluteAlignment.TopLeft)
-                        .absoluteOffset(x = 16.dp, y = headerTop)
-                        .zIndex(1000f)
-                ) {
-                    Tooltip("در این بخش می‌توانید تمام اطلاعات پروفایل خود شامل متن درباره من، تصویر، ویدیو و اطلاعات تماس را مشاهده و مدیریت کنید.")
-                }
             }
+        }
+        AboutMeBackButton(
+            onClick = { navigation.goBack() },
+            modifier = Modifier
+                .align(AbsoluteAlignment.TopRight)
+                .absoluteOffset(x = (-20).dp, y = sbh + 33.dp)
+                .zIndex(1000f)
+        )
+        Box(
+            Modifier
+                .align(AbsoluteAlignment.TopLeft)
+                .absoluteOffset(x = 20.dp, y = sbh + 33.dp)
+                .zIndex(1000f)
+        ) {
+            Tooltip("در این بخش می‌توانید تمام اطلاعات پروفایل خود شامل متن درباره من، تصویر، ویدیو و اطلاعات تماس را مشاهده و مدیریت کنید.")
         }
         key(toastToken) {
             Toast(toast.visible, toast.message, toast.type) { toast = toast.copy(visible = false) }

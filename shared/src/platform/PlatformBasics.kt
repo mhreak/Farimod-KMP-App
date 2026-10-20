@@ -17,3 +17,6 @@ expect fun canOpenUrl(url: String): Boolean
 /** React Native: `BackHandler.addEventListener("hardwareBackPress", ...)`. No-op on iOS. */
 @Composable
 expect fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit)
+
+/** Returns the real application version name (e.g. from PackageManager on Android or NSBundle on iOS). */
+expect fun getAppVersionName(): String

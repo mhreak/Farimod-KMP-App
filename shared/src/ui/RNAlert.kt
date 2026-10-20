@@ -1,16 +1,25 @@
 package ir.farimod.app.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ir.farimod.app.theme.FarimodColors
+import ir.farimod.app.theme.FarimodTheme
 
 /** RN `Alert.alert` button: `{ text, style: "default" | "cancel" | "destructive", onPress }` */
 data class AlertButton(
@@ -48,32 +57,58 @@ object RNAlert {
 fun AlertHost() {
     val request = RNAlert.current as? AlertRequest ?: return
     fun dismiss() { RNAlert.current = null }
-    AlertDialog(
-        onDismissRequest = {
-            if (request.cancelable) {
-                dismiss()
-                request.buttons.firstOrNull { it.style == "cancel" }?.onPress?.invoke()
-            }
-        },
-        containerColor = Color.White,
-        title = {
-            AppText(request.title, fontSize = 18.sp, fontFamily = RNFonts.Yekan_Bakh_Bold, textAlign = TextAlign.Right)
-        },
-        text = request.message?.let { msg ->
-            { AppText(msg, fontSize = 15.sp, fontFamily = RNFonts.Yekan_Bakh_Regular, color = FarimodColors.Medium, textAlign = TextAlign.Right) }
-        },
-        confirmButton = {
-            androidx.compose.foundation.layout.Row {
-                for (b in request.buttons.reversed()) {
-                    TextButton(onClick = { dismiss(); b.onPress?.invoke() }) {
-                        Text(
-                            text = b.text,
-                            color = if (b.style == "destructive") FarimodColors.Danger else FarimodColors.Primary,
-                            fontFamily = RNFonts.Yekan_Bakh_Bold
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        FarimodTheme(isRtl = true) {
+            AlertDialog(
+                onDismissRequest = {
+                    if (request.cancelable) {
+                        dismiss()
+                        request.buttons.firstOrNull { it.style == "cancel" }?.onPress?.invoke()
+                    }
+                },
+                containerColor = Color.White,
+                title = {
+                    AppText(
+                        request.title,
+                        modifier = Modifier.fillMaxWidth(),
+                        fontSize = 18.sp,
+                        fontFamily = RNFonts.Yekan_Bakh_Bold,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Right
+                    )
+                },
+                text = request.message?.let { msg ->
+                    {
+                        AppText(
+                            msg,
+                            modifier = Modifier.fillMaxWidth(),
+                            fontSize = 15.sp,
+                            fontFamily = RNFonts.Yekan_Bakh_Regular,
+                            color = FarimodColors.Medium,
+                            textAlign = TextAlign.Right,
+                            lineHeight = 22.sp
                         )
                     }
+                },
+                confirmButton = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        for (b in request.buttons.reversed()) {
+                            TextButton(onClick = { dismiss(); b.onPress?.invoke() }) {
+                                AppText(
+                                    text = b.text,
+                                    color = if (b.style == "destructive") FarimodColors.Danger else FarimodColors.Primary,
+                                    fontFamily = RNFonts.Yekan_Bakh_Bold,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
                 }
-            }
+            )
         }
-    )
+    }
 }

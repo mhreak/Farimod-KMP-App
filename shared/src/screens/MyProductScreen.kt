@@ -269,8 +269,8 @@ fun MyProductScreen() {
             modifier = Modifier
                 .align(AbsoluteAlignment.TopRight)
                 .zIndex(1000f)
-                .absoluteOffset(x = (-20).dp, y = statusTop + 45.dp),
-            onClick = { navigation.navigate("MainTabs", mapOf("screen" to Tabs.Profile)) }
+                .absoluteOffset(x = (-20).dp, y = statusTop + 33.dp),
+            onClick = { navigation.goBack() }
         ) {
             MaterialIcons("arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
         }
@@ -279,9 +279,8 @@ fun MyProductScreen() {
             Modifier
                 .align(AbsoluteAlignment.TopLeft)
                 .zIndex(1000f)
-                .absoluteOffset(x = 20.dp, y = statusTop + 45.dp)
-                .offset(y = (-12).dp)
-                .size(50.dp)
+                .absoluteOffset(x = 20.dp, y = statusTop + 33.dp)
+                .size(44.dp)
                 .touchableOpacity { navigation.navigate("AddProduct") }
         ) {
             LinearGradient(

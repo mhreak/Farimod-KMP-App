@@ -55,7 +55,12 @@ object Api {
         auth: Boolean,
         timeoutMs: Long?
     ) {
-        url(path)
+        val cleanPath = if (path.startsWith("http://") || path.startsWith("https://")) {
+            path
+        } else {
+            path.removePrefix("/").removePrefix("api/MobileApp/")
+        }
+        url(cleanPath)
         url {
             for ((k, v) in query) {
                 if (v != null) parameters.append(k, v.toString())

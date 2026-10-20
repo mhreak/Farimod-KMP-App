@@ -51,7 +51,9 @@ import ir.farimod.app.navigation.useNavigation
 import ir.farimod.app.network.Api
 import ir.farimod.app.network.ApiNetworkException
 import ir.farimod.app.network.get
+import ir.farimod.app.network.int
 import ir.farimod.app.network.jsonOf
+import ir.farimod.app.network.list
 import ir.farimod.app.network.str
 import ir.farimod.app.screens.auth.AuthBackdrop
 import ir.farimod.app.screens.auth.AuthGlassCard
@@ -180,15 +182,33 @@ fun SignupScreen() {
         try {
             groupsLoading = true
             groupsError = null
-            val response = Api.get("MemberGroup/GetAll", query = mapOf("filterActive" to true))
-            if (!response.ok) throw Exception("HTTP error! status: ${response.status}")
-            val result = response.json ?: throw Exception("Invalid data format received from API")
-            val data = result["Data"]
-            if (data is JsonArray) {
-                groups = data.toList()
-            } else {
-                throw Exception("Invalid data format received from API")
+            var currentPage = 1
+            val pageSize = 100
+            val allGroups = mutableListOf<JsonElement>()
+            while (true) {
+                val response = Api.get(
+                    "MemberGroup/GetAll",
+                    query = mapOf(
+                        "filterActive" to true,
+                        "currentPage" to currentPage,
+                        "pageSize" to pageSize
+                    )
+                )
+                if (!response.ok) throw Exception("HTTP error! status: ${response.status}")
+                val result = response.json ?: throw Exception("Invalid data format received from API")
+                val data = result["Data"]
+                if (data is JsonArray) {
+                    allGroups.addAll(data)
+                    val total = result["Total"].int ?: allGroups.size
+                    if (data.size < pageSize || allGroups.size >= total) {
+                        break
+                    }
+                    currentPage++
+                } else {
+                    break
+                }
             }
+            groups = allGroups
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -462,7 +482,7 @@ fun SignupScreen() {
                                     fontSize = 16.sp,
                                     color = FarimodColors.Primary,
                                     fontFamily = RNFonts.Yekan_Bakh_Regular,
-                                    textDecoration = TextDecoration.Underline
+//                                    textDecoration = TextDecoration.Underline
                                 )
                             }
                         }

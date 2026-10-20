@@ -7,28 +7,37 @@ import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import ir.farimod.app.components.icons.MaterialCommunityIcons
+import ir.farimod.app.network.ApiConfig
 import ir.farimod.app.network.int
 import ir.farimod.app.network.long
 import ir.farimod.app.network.str
 import ir.farimod.app.ui.AppText
 import ir.farimod.app.ui.LinearGradient
 import ir.farimod.app.ui.RNFonts
+import ir.farimod.app.ui.linearGradient
 import ir.farimod.app.ui.rnShadow
 import ir.farimod.app.ui.touchableOpacity
 import ir.farimod.app.utils.safeString
@@ -79,61 +88,122 @@ internal fun groupIdOf(item: JsonElement): Int =
     item.int("MemberGroupId") ?: item.long("MemberGroupId")?.toInt() ?: 0
 
 @Composable
-internal fun MemberGroupTile(item: JsonElement, onPress: (JsonElement) -> Unit) {
+internal fun MemberGroupTile(
+    item: JsonElement,
+    modifier: Modifier = Modifier,
+    onPress: (JsonElement) -> Unit
+) {
     val id = groupIdOf(item)
     val gradient = GroupGradients[id.mod(GroupGradients.size)]
     val icon = GroupIcons[id.mod(GroupIcons.size)]
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(20.dp)
+    val rawUrl = item.str("ImageURL")
+        ?: item.str("FeaturedImageURL")
+        ?: item.str("GroupImageURL")
+        ?: item.str("IconURL")
+        ?: item.str("PictureURL")
+        ?: item.str("PhotoURL")
+        ?: item.str("Image")
+        ?: item.str("FeaturedImageFileName")
+        ?: item.str("ImageFileName")
+    val imageUrl = ApiConfig.resolveMediaUrl(rawUrl)
+    var imageError by remember(imageUrl) { mutableStateOf(false) }
+    val showImage = !imageUrl.isNullOrBlank() && !imageError
+
     Box(
-        Modifier
-            .absolutePadding(left = 8.dp, right = 8.dp, top = 10.dp, bottom = 10.dp)
-            .touchableOpacity(activeOpacity = 0.9f) { onPress(item) }
-            .size(100.dp)
-            .rnShadow(10.dp, shape)
+        modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .touchableOpacity(activeOpacity = 0.85f) { onPress(item) }
+            .rnShadow(6.dp, shape)
             .clip(shape)
     ) {
-        LinearGradient(
-            colors = gradient,
-            modifier = Modifier
-                .fillMaxSize()
-                .borderWhite(shape),
-            start = Offset(0f, 0f),
-            end = Offset(1f, 1f)
-        ) {
-            Column(
+        if (showImage) {
+            AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                onError = { imageError = true }
+            )
+            Box(
                 Modifier
-                    .fillMaxSize()
-                    .padding(14.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.7f)
+                    .linearGradient(
+                        listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.4f),
+                            Color.Black.copy(alpha = 0.85f)
+                        )
+                    )
+            )
+            Box(
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 8.dp)
             ) {
-                MaterialCommunityIcons(
-                    name = icon,
-                    size = 28.dp,
-                    color = Color.Black.copy(alpha = 0.95f),
-                    modifier = Modifier.padding(bottom = 5.dp)
-                )
                 AppText(
                     text = safeString(item.str("GroupName"), "گروه بدون نام"),
-                    modifier = Modifier.fillMaxWidth().absolutePadding(left = 4.dp, right = 4.dp).padding(bottom = 10.dp),
-                    fontSize = 12.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    fontSize = 11.sp,
                     fontFamily = RNFonts.Yekan_Bakh_Bold,
-                    color = Color.Black,
+                    color = Color.White,
                     textAlign = TextAlign.Center,
-                    lineHeight = 18.sp,
+                    lineHeight = 15.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+        } else {
+            LinearGradient(
+                colors = gradient,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .borderWhite(shape),
+                start = Offset(0f, 0f),
+                end = Offset(1f, 1f)
+            ) {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 6.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Box(
+                        Modifier.padding(bottom = 6.dp)
+                    ) {
+                        MaterialCommunityIcons(
+                            name = icon,
+                            size = 28.dp,
+                            color = Color.Black.copy(alpha = 0.95f)
+                        )
+                    }
+                    AppText(
+                        text = safeString(item.str("GroupName"), "گروه بدون نام"),
+                        modifier = Modifier.fillMaxWidth(),
+                        fontSize = 11.sp,
+                        fontFamily = RNFonts.Yekan_Bakh_Bold,
+                        color = Color.Black,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 15.sp,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-internal fun MemberGroupSkeleton() {
-    val shape = RoundedCornerShape(24.dp)
+internal fun MemberGroupSkeleton(modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(20.dp)
     Box(
-        Modifier
+        modifier
             .fillMaxWidth()
             .aspectRatio(1f)
             .rnShadow(3.dp, shape)

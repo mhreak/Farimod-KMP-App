@@ -100,15 +100,14 @@ fun CourseStudentsScreen() {
     val listState = rememberLazyListState()
     val pullState = rememberPullToRefreshState()
     val top = statusBarHeight()
-    val headerTop = if (top > 0.dp) top + 20.dp else 45.dp
     val busy = remember { mutableStateOf(false) }
 
     fun showToast(message: String, type: String = "info") {
         toast = ToastData(true, message, type)
     }
 
-    fun goHome() {
-        navigation.navigate("MainTabs", mapOf("screen" to Tabs.Home))
+    fun goBack() {
+        navigation.goBack()
     }
 
     suspend fun fetchStudents(newPage: Int, loadMore: Boolean) {
@@ -151,7 +150,7 @@ fun CourseStudentsScreen() {
         if (courseId == null) {
             showToast("اطلاعات دوره یافت نشد", "error")
             delay(2000)
-            goHome()
+            goBack()
             return@LaunchedEffect
         }
         fetchStudents(1, false)
@@ -206,7 +205,7 @@ fun CourseStudentsScreen() {
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .padding(top = headerTop)
+                        .padding(top = top + 35.dp)
                         .absolutePadding(left = 20.dp, right = 20.dp)
                         .padding(bottom = 20.dp)
                         .graphicsLayer {
@@ -217,14 +216,14 @@ fun CourseStudentsScreen() {
                 ) {
                     AppText(
                         text = "دانشجویان دوره",
-                        modifier = Modifier.fillMaxWidth().absolutePadding(left = 56.dp, right = 56.dp).padding(10.dp).padding(bottom = 6.dp),
+                        modifier = Modifier.fillMaxWidth().absolutePadding(left = 56.dp, right = 56.dp),
                         fontSize = 22.sp,
                         fontFamily = RNFonts.Yekan_Bakh_Bold,
                         color = StudentDark,
-                        textAlign = TextAlign.Center
-                    ,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis)
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
                 if (loading && students.isEmpty()) {
                     LazyColumn(
@@ -330,11 +329,11 @@ fun CourseStudentsScreen() {
         Box(
             Modifier
                 .align(AbsoluteAlignment.TopRight)
-                .zIndex(10f)
-                .absoluteOffset(x = (-20).dp, y = headerTop)
+                .zIndex(1000f)
+                .absoluteOffset(x = (-20).dp, y = top + 33.dp)
                 .size(44.dp)
-                .touchableOpacity(activeOpacity = 0.8f) { goHome() }
-                .rnShadow(8.dp, CircleShape, StudentPrimary)
+                .touchableOpacity(activeOpacity = 0.8f) { goBack() }
+                .rnShadow(5.dp, CircleShape)
                 .background(Color.White.copy(alpha = 0.95f), CircleShape),
             contentAlignment = Alignment.Center
         ) {

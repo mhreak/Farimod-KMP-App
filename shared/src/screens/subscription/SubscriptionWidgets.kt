@@ -68,7 +68,9 @@ private val TitleDark = Color(0xFF2C3E50)
 private val Muted = Color(0xFF64748B)
 private val FeatureText = Color(0xFF475569)
 
-internal fun subGroupedPrice(price: Double): String = toPersianDigits(jsToLocaleString(price))
+internal fun subGroupedPrice(price: Double): String {
+    return if (price <= 0.0) "رایگان" else "${toPersianDigits(jsToLocaleString(price))} تومان"
+}
 
 @Composable
 internal fun ActiveSubscriptionBanner(active: ActiveSub) {
@@ -463,7 +465,7 @@ internal fun SubscriptionPlanCard(
                                                     modifier = Modifier.padding(bottom = 4.dp)
                                                 )
                                                 AppText(
-                                                    text = "${subGroupedPrice(option.price)} تومان",
+                                                    text = subGroupedPrice(option.price),
                                                     fontSize = 14.sp,
                                                     fontFamily = RNFonts.Yekan_Bakh_Regular,
                                                     color = if (picked) Color(1f, 1f, 1f, 0.8f) else Color(0xFF9CA3AF)
@@ -499,7 +501,7 @@ internal fun SubscriptionPlanCard(
                                 ) {
                                     SummaryLine("پلن انتخابی:", item.title)
                                     SummaryLine("مدت اشتراک:", chosen.duration)
-                                    SummaryLine("قیمت:", "${subGroupedPrice(chosen.price)} تومان")
+                                    SummaryLine("قیمت:", subGroupedPrice(chosen.price))
                                 }
                             }
                         }
@@ -687,7 +689,7 @@ internal fun SubscriptionConfirmDialog(
                     ) {
                         PlanDetailRow("پلن:", plan.title, price = false)
                         PlanDetailRow("مدت:", option.duration, price = false)
-                        PlanDetailRow("قیمت:", "${subGroupedPrice(option.price)} تومان", price = true)
+                        PlanDetailRow("قیمت:", subGroupedPrice(option.price), price = true)
                     }
                 }
                 Row(

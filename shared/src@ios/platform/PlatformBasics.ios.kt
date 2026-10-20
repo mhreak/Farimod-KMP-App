@@ -22,3 +22,12 @@ actual fun canOpenUrl(url: String): Boolean {
 actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
     // iOS has no hardware back button; swipe-back is handled by StackHost.
 }
+
+actual fun getAppVersionName(): String {
+    return try {
+        val version = platform.Foundation.NSBundle.mainBundle.objectForInfoDictionaryKey("CFBundleShortVersionString") as? String
+        version ?: "1.0.0"
+    } catch (_: Exception) {
+        "1.0.0"
+    }
+}

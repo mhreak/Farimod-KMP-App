@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -56,10 +57,16 @@ import ir.farimod.app.components.icons.MaterialIcons
 import ir.farimod.app.navigation.Tabs
 import ir.farimod.app.navigation.useNavigation
 import ir.farimod.app.navigation.useRoute
+import ir.farimod.app.network.Api
+import ir.farimod.app.network.bool
 import ir.farimod.app.network.double
 import ir.farimod.app.network.get
 import ir.farimod.app.network.int
+import ir.farimod.app.network.jsonOf
 import ir.farimod.app.network.str
+import ir.farimod.app.platform.AppBuildConfig
+import ir.farimod.app.platform.InAppPurchaseResult
+import ir.farimod.app.platform.PlatformBilling
 import ir.farimod.app.platform.isIOS
 import ir.farimod.app.platform.openUrl
 import ir.farimod.app.screens.subscription.SubOption
@@ -127,6 +134,10 @@ fun SubscriptionPurchaseScreen() {
 
     fun showToast(message: String, type: String = "info") {
         toast = ToastData(true, message, type)
+    }
+
+    fun goBack() {
+        navigation.goBack()
     }
 
     fun goHome() {
@@ -251,20 +262,15 @@ fun SubscriptionPurchaseScreen() {
         Box(
             Modifier
                 .align(AbsoluteAlignment.TopRight)
-                .zIndex(10f)
-                .absolutePadding(top = backTop, right = 16.dp)
-                .touchableOpacity(activeOpacity = 0.7f) { goHome() }
+                .zIndex(1000f)
+                .absoluteOffset(x = (-20).dp, y = bar + 33.dp)
+                .size(44.dp)
+                .touchableOpacity(activeOpacity = 0.7f) { goBack() }
+                .rnShadow(5.dp, CircleShape)
+                .background(Color.White.copy(alpha = 0.95f), CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .rnShadow(3.dp, CircleShape)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.95f)),
-                contentAlignment = Alignment.Center
-            ) {
-                MaterialIcons(name = "arrow-forward", size = 24.dp, color = SpDark)
-            }
+            MaterialIcons(name = "arrow-forward", size = 24.dp, color = Color(0xFF6366F1))
         }
 
         Column(
@@ -296,35 +302,147 @@ fun SubscriptionPurchaseScreen() {
                             showToast("لطفا ابتدا وارد حساب کاربری خود شوید", "error")
                             return@touchableOpacity
                         }
-                        val planId = plan["id"].int ?: 0
+                        val planId = plan["id"].int ?: plan["SubscriptionPlanId"].int ?: 0
+                        if (planId <= 0) {
+                            showToast("اطلاعات پلن نامعتبر است", "error")
+                            return@touchableOpacity
+                        }
+
+                        println("[FarimodBilling] ========================================================")
+                        println("[FarimodBilling] 🚀 Step 1: User tapped Subscription purchase | planId=$planId, option=$optionValue, finalPrice=$finalPrice")
+
                         scope.launch {
                             isPurchasing = true
                             try {
                                 val days = SubscriptionService.calculateDays(optionValue)
-                                val result = SubscriptionService.buySubscriptionPlan(
-                                    memberId,
-                                    planId,
-                                    days,
-                                    if (codeApplied) discountCode else ""
+
+                                // مرحله ۱: ارسال درخواست اولیه ایجاد سفارش اشتراک به سرور
+                                println("[FarimodBilling] 📡 Step 2: Sending pre-order request to SubscriptionPlan/BuySubscriptionPlan...")
+                                val preOrderResult = SubscriptionService.buySubscriptionPlan(
+                                    memberId = memberId,
+                                    subscriptionPlanId = planId,
+                                    subscriptionTotalDays = days,
+                                    discountCode = if (codeApplied) discountCode else ""
                                 )
-                                if (result.success) {
-                                    val gateway = result.data["GatewayURL"].str
-                                    if (!gateway.isNullOrEmpty()) {
-                                        showToast("در حال انتقال به درگاه پرداخت...", "success")
-                                        launch {
-                                            delay(1500)
-                                            openUrl(gateway)
-                                            goHome()
-                                        }
+
+                                val preData = preOrderResult.data
+                                println("[FarimodBilling] 📥 Pre-order response: success=${preOrderResult.success}, msg=${preOrderResult.message}, data=$preData")
+
+                                if (!preOrderResult.success || preData == null) {
+                                    val msg = preOrderResult.message ?: "خطا در ثبت درخواست اشتراک"
+                                    println("[FarimodBilling] ❌ Pre-order failed: $msg")
+                                    showToast(msg, "error")
+                                    isPurchasing = false
+                                    return@launch
+                                }
+
+                                val memberSubscriptionId = preData.int("MemberSubscriptionId")
+                                    ?: preData["Data"].int("MemberSubscriptionId")
+                                    ?: preData.int("Id")
+                                    ?: 0
+
+                                println("[FarimodBilling] 📋 Server subscription record: MemberSubscriptionId=$memberSubscriptionId")
+
+                                // بررسی رایگان بودن (تخفیف ۱۰۰٪)
+                                if (finalPrice <= 0.0) {
+                                    println("[FarimodBilling] 🎁 Subscription is free! Completed successfully.")
+                                    showToast(preOrderResult.message ?: "اشتراک رایگان شما با موفقیت فعال شد", "success")
+                                    delay(1500)
+                                    goHome()
+                                    return@launch
+                                }
+
+                                // مرحله ۳: در صورت فعال بودن مایکت، باز کردن درگاه پرداخت مایکت
+                                if (PlatformBilling.isSupported && PlatformBilling.isMarketInstalled) {
+                                    val sku = "plan$planId"
+                                    val payload = if (memberSubscriptionId > 0) {
+                                        "sub_${memberSubscriptionId}_member_${memberId}"
                                     } else {
-                                        showToast("خرید با موفقیت انجام شد", "success")
-                                        launch {
-                                            delay(1500)
-                                            goHome()
+                                        "member_${memberId}_plan_${planId}"
+                                    }
+
+                                    println("[FarimodBilling] 🛒 Step 3: Launching Myket IAP purchase | SKU=$sku, Payload=$payload")
+                                    showToast("در حال باز کردن درگاه پرداخت مایکت...", "info")
+                                    PlatformBilling.launchPurchase(sku, payload) { purchaseResult ->
+                                        when (purchaseResult) {
+                                            is InAppPurchaseResult.Success -> {
+                                                val p = purchaseResult.purchase
+                                                println("[FarimodBilling] ✅ Step 4: Myket Subscription Purchase SUCCESS!")
+                                                println("[FarimodBilling]    - SKU: ${p.sku}")
+                                                println("[FarimodBilling]    - OrderId: ${p.orderId}")
+                                                println("[FarimodBilling]    - Token: ${p.token}")
+                                                println("[FarimodBilling]    - Payload: ${p.developerPayload}")
+                                                showToast("پرداخت با موفقیت انجام شد. در حال فعال‌سازی اشتراک...", "success")
+
+                                                scope.launch {
+                                                    try {
+                                                        println("[FarimodBilling] 📤 Step 5: Sending Token & MemberSubscriptionId to AppMarketCheckSubscriptionPlanPayment...")
+                                                        println("[FarimodBilling]    - MemberSubscriptionId: $memberSubscriptionId")
+                                                        println("[FarimodBilling]    - Token: ${p.token}")
+
+                                                        val checkResult = SubscriptionService.appMarketCheckSubscriptionPlanPayment(
+                                                            memberSubscriptionId = memberSubscriptionId,
+                                                            token = p.token
+                                                        )
+
+                                                        println("[FarimodBilling] 📥 Backend check response: success=${checkResult.success}, msg=${checkResult.message}, data=${checkResult.data}")
+
+                                                        if (checkResult.success) {
+                                                            // مصرف خرید در مایکت تا کاربر در آینده هم بتواند اشتراک تمدید یا خریداری کند
+                                                            println("[FarimodBilling] 🔄 Step 6: Consuming subscription purchase in Myket | Token=${p.token}...")
+                                                            PlatformBilling.consumePurchase(p.token) { success, msg ->
+                                                                println("[FarimodBilling] 🏁 Consume result: success=$success, message=$msg")
+                                                            }
+
+                                                            val successMsg = checkResult.message ?: "اشتراک شما با موفقیت فعال گردید"
+                                                            showToast(successMsg, "success")
+                                                            delay(1500)
+                                                            goHome()
+                                                        } else {
+                                                            val errorMsg = checkResult.message ?: "خطا در تایید پرداخت اشتراک توسط سرور"
+                                                            println("[FarimodBilling] ❌ AppMarketCheckSubscriptionPlanPayment failed: $errorMsg")
+                                                            showToast(errorMsg, "error")
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        println("[FarimodBilling] ⚠️ Exception during AppMarketCheckSubscriptionPlanPayment: ${e.message}")
+                                                        showToast("پرداخت در مایکت انجام شد اما خطا در فعال‌سازی سرور رخ داد", "warning")
+                                                    } finally {
+                                                        isPurchasing = false
+                                                        println("[FarimodBilling] ========================================================")
+                                                    }
+                                                }
+                                            }
+                                            is InAppPurchaseResult.UserCancelled -> {
+                                                println("[FarimodBilling] ⏹️ Myket Subscription Purchase Cancelled by user.")
+                                                isPurchasing = false
+                                                showToast("پرداخت توسط کاربر لغو شد", "info")
+                                                println("[FarimodBilling] ========================================================")
+                                            }
+                                            is InAppPurchaseResult.Error -> {
+                                                println("[FarimodBilling] ❌ Myket Subscription Purchase ERROR: code=${purchaseResult.code}, message=${purchaseResult.message}")
+                                                isPurchasing = false
+                                                showToast(purchaseResult.message, "error")
+                                                println("[FarimodBilling] ========================================================")
+                                            }
                                         }
                                     }
+                                    return@launch
+                                }
+
+                                // مرحله ۴: در صورت نسخه وب یا عدم پشتیبانی مایکت، باز کردن درگاه پرداخت اینترنتی
+                                val gateway = preData.str("GatewayURL")
+                                    ?: preData["Data"].str("GatewayURL")
+                                    ?: preData["GatewayURL"].str
+                                if (!gateway.isNullOrEmpty()) {
+                                    println("[FarimodBilling] 🌐 In-app store billing not active (${AppBuildConfig.activeDistribution.titleFa}). Opening direct web gateway: $gateway")
+                                    showToast("در حال انتقال به درگاه پرداخت...", "info")
+                                    delay(1000)
+                                    openUrl(gateway)
+                                    goHome()
                                 } else {
-                                    showToast(result.message ?: "", "error")
+                                    showToast(preOrderResult.message ?: "خرید با موفقیت انجام شد", "success")
+                                    delay(1500)
+                                    goHome()
                                 }
                             } catch (e: CancellationException) {
                                 throw e
@@ -352,16 +470,20 @@ fun SubscriptionPurchaseScreen() {
                             horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            MaterialIcons(name = "credit-card", size = 22.dp, color = Color.White)
+                            MaterialIcons(
+                                name = if (finalPrice <= 0.0) "check-circle" else "credit-card",
+                                size = 22.dp,
+                                color = Color.White
+                            )
                             AppText(
-                                text = "خرید اشتراک",
+                                text = if (finalPrice <= 0.0) "فعال‌سازی اشتراک" else "خرید اشتراک",
                                 fontSize = 16.sp,
                                 fontFamily = RNFonts.Yekan_Bakh_Bold,
                                 color = Color.White,
                                 textAlign = TextAlign.Center
                             )
                             AppText(
-                                text = toPersianDigits(formatPrice(finalPrice)),
+                                text = if (finalPrice <= 0.0) "(رایگان)" else formatPrice(finalPrice),
                                 fontSize = 14.sp,
                                 fontFamily = RNFonts.Yekan_Bakh_Regular,
                                 color = Color.White.copy(alpha = 0.9f),
@@ -587,10 +709,11 @@ private fun SpSummaryCard(originalPrice: Double, discountAmount: Double, finalPr
             }
         }
         Column(Modifier.padding(20.dp)) {
-            SummaryLine("قیمت اشتراک:", toPersianDigits(formatPrice(originalPrice)), false)
             if (discountAmount > 0.0) {
                 SummaryLine("تخفیف:", "- ${toPersianDigits(formatPrice(discountAmount))}", true)
             }
+            SummaryLine("قیمت اشتراک:", if (originalPrice <= 0.0) "رایگان" else formatPrice(originalPrice), false)
+
             Box(Modifier.fillMaxWidth().absolutePadding(top = 12.dp, bottom = 12.dp).height(1.dp).background(Color(0xFFF3F4F6)))
             Row(
                 Modifier
@@ -603,17 +726,18 @@ private fun SpSummaryCard(originalPrice: Double, discountAmount: Double, finalPr
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 AppText(
-                    text = toPersianDigits(formatPrice(finalPrice)),
-                    fontSize = 18.sp,
-                    fontFamily = RNFonts.Yekan_Bakh_Bold,
-                    color = Color(0xFF667EEA)
-                )
-                AppText(
                     text = "مبلغ قابل پرداخت:",
                     fontSize = 14.sp,
                     fontFamily = RNFonts.Yekan_Bakh_Bold,
                     color = SpDark
                 )
+                AppText(
+                    text = if (finalPrice <= 0.0) "رایگان" else formatPrice(finalPrice),
+                    fontSize = 18.sp,
+                    fontFamily = RNFonts.Yekan_Bakh_Bold,
+                    color = Color(0xFF667EEA)
+                )
+
             }
         }
     }

@@ -46,6 +46,7 @@ fun ChipsUI(
     maxSelectable: Int? = null,
     allowMultipleSelection: Boolean = true,
     sortType: String = "length-asc",
+    fullWidth: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val sortedGroups = remember(groups, sortType) {
@@ -69,52 +70,52 @@ fun ChipsUI(
     }
 
     Column(modifier = modifier.padding(bottom = 20.dp)) {
-        // <ScrollView contentContainerStyle={{ padding 0 }}>  (flexShrink 1 in a bounded parent)
-        BoxWithConstraints(modifier = Modifier.weight(1f, fill = false)) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val scrollMod = if (constraints.hasBoundedHeight) Modifier.verticalScroll(rememberScrollState()) else Modifier
-            FlowRow(
-                modifier = Modifier.fillMaxWidth().then(scrollMod),
-                horizontalArrangement = Arrangement.Start,
-                verticalArrangement = Arrangement.Top
-            ) {
-                for (group in sortedGroups) {
-                    val id = group.int("MemberGroupId") ?: continue
-                    val name = group.str("GroupName") ?: ""
-                    val isSelected = selectedGroups.contains(id)
-                    val canSelect = if (allowMultipleSelection)
-                        (maxSelectable == null || maxSelectable == 0 || selectedGroups.size < maxSelectable || isSelected)
-                    else
-                        (selectedGroups.isEmpty() || isSelected)
-                    val dynamicFontSize = getFontSize(name)
-                    val shape = RoundedCornerShape(20.dp)
 
-                    // styles.chip / selectedChip / disabledChip (later wins)
-                    var bg = FarimodColors.Light
-                    var borderColor = FarimodColors.Medium
-                    var elevation = 1.dp
-                    var shadowColor = Color.Black
-                    var chipAlpha = 1f
-                    if (isSelected) {
-                        bg = FarimodColors.Success
-                        borderColor = FarimodColors.Success
-                        shadowColor = FarimodColors.Success
-                        elevation = 3.dp
-                    }
-                    if (!canSelect) {
-                        bg = Color(0xFFF5F5F5)
-                        borderColor = Color(0xFFE0E0E0)
-                        chipAlpha = 0.6f
-                    }
-                    val textColor = when {
-                        !canSelect -> Color(0xFFBDBDBD)
-                        isSelected -> FarimodColors.White
-                        else -> FarimodColors.Dark
-                    }
+            if (fullWidth) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(scrollMod),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    for (group in sortedGroups) {
+                        val id = group.int("MemberGroupId") ?: continue
+                        val name = group.str("GroupName") ?: ""
+                        val isSelected = selectedGroups.contains(id)
+                        val canSelect = if (allowMultipleSelection)
+                            (maxSelectable == null || maxSelectable == 0 || selectedGroups.size < maxSelectable || isSelected)
+                        else
+                            (selectedGroups.isEmpty() || isSelected)
+                        val dynamicFontSize = getFontSize(name)
+                        val shape = RoundedCornerShape(16.dp)
 
-                    // chip margins: marginRight 8, marginBottom 10
-                    Column(modifier = Modifier.absolutePadding(right = 8.dp, bottom = 10.dp)) {
-                        Row(
+                        var bg = FarimodColors.Light
+                        var borderColor = FarimodColors.Medium
+                        var elevation = 1.dp
+                        var shadowColor = Color.Black
+                        var chipAlpha = 1f
+                        if (isSelected) {
+                            bg = FarimodColors.Success
+                            borderColor = FarimodColors.Success
+                            shadowColor = FarimodColors.Success
+                            elevation = 3.dp
+                        }
+                        if (!canSelect) {
+                            bg = Color(0xFFF5F5F5)
+                            borderColor = Color(0xFFE0E0E0)
+                            chipAlpha = 0.6f
+                        }
+                        val textColor = when {
+                            !canSelect -> Color(0xFFBDBDBD)
+                            isSelected -> FarimodColors.White
+                            else -> FarimodColors.Dark
+                        }
+
+                        RowReverse(
                             modifier = Modifier
+                                .fillMaxWidth()
                                 .alpha(chipAlpha)
                                 .touchableOpacity(enabled = canSelect, activeOpacity = 0.7f) {
                                     if (canSelect) onToggleGroup(id)
@@ -122,34 +123,114 @@ fun ChipsUI(
                                 .rnShadow(elevation, shape, shadowColor)
                                 .background(bg, shape)
                                 .border(1.dp, borderColor, shape)
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            if (isSelected) {
-                                MaterialIcons(
-                                    name = "check-circle",
-                                    size = 16.dp,
-                                    color = FarimodColors.White,
-                                    modifier = Modifier.absolutePadding(right = 6.dp)
-                                )
-                            }
                             AppText(
                                 text = name,
                                 fontSize = dynamicFontSize.sp,
                                 color = textColor,
                                 fontFamily = if (isSelected) RNFonts.Yekan_Bakh_Bold else RNFonts.Yekan_Bakh_Regular,
-                                textAlign = TextAlign.Center,
+                                textAlign = TextAlign.Start,
                                 maxLines = 1,
                                 softWrap = false
                             )
-                            if (!isSelected) {
+
+                            if (isSelected) {
+                                MaterialIcons(
+                                    name = "check-circle",
+                                    size = 20.dp,
+                                    color = FarimodColors.White
+                                )
+                            } else {
                                 MaterialIcons(
                                     name = "add-circle-outline",
-                                    size = 16.dp,
-                                    color = if (canSelect) FarimodColors.Medium else FarimodColors.Light,
-                                    modifier = Modifier.absolutePadding(left = 6.dp)
+                                    size = 20.dp,
+                                    color = if (canSelect) FarimodColors.Medium else Color(0xFFBDBDBD)
                                 )
+                            }
+                        }
+                    }
+                }
+            } else {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().then(scrollMod),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    for (group in sortedGroups) {
+                        val id = group.int("MemberGroupId") ?: continue
+                        val name = group.str("GroupName") ?: ""
+                        val isSelected = selectedGroups.contains(id)
+                        val canSelect = if (allowMultipleSelection)
+                            (maxSelectable == null || maxSelectable == 0 || selectedGroups.size < maxSelectable || isSelected)
+                        else
+                            (selectedGroups.isEmpty() || isSelected)
+                        val dynamicFontSize = getFontSize(name)
+                        val shape = RoundedCornerShape(20.dp)
+
+                        var bg = FarimodColors.Light
+                        var borderColor = FarimodColors.Medium
+                        var elevation = 1.dp
+                        var shadowColor = Color.Black
+                        var chipAlpha = 1f
+                        if (isSelected) {
+                            bg = FarimodColors.Success
+                            borderColor = FarimodColors.Success
+                            shadowColor = FarimodColors.Success
+                            elevation = 3.dp
+                        }
+                        if (!canSelect) {
+                            bg = Color(0xFFF5F5F5)
+                            borderColor = Color(0xFFE0E0E0)
+                            chipAlpha = 0.6f
+                        }
+                        val textColor = when {
+                            !canSelect -> Color(0xFFBDBDBD)
+                            isSelected -> FarimodColors.White
+                            else -> FarimodColors.Dark
+                        }
+
+                        Column(modifier = Modifier.absolutePadding(right = 8.dp, bottom = 10.dp)) {
+                            Row(
+                                modifier = Modifier
+                                    .alpha(chipAlpha)
+                                    .touchableOpacity(enabled = canSelect, activeOpacity = 0.7f) {
+                                        if (canSelect) onToggleGroup(id)
+                                    }
+                                    .rnShadow(elevation, shape, shadowColor)
+                                    .background(bg, shape)
+                                    .border(1.dp, borderColor, shape)
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                if (isSelected) {
+                                    MaterialIcons(
+                                        name = "check-circle",
+                                        size = 16.dp,
+                                        color = FarimodColors.White,
+                                        modifier = Modifier.absolutePadding(right = 6.dp)
+                                    )
+                                }
+                                AppText(
+                                    text = name,
+                                    fontSize = dynamicFontSize.sp,
+                                    color = textColor,
+                                    fontFamily = if (isSelected) RNFonts.Yekan_Bakh_Bold else RNFonts.Yekan_Bakh_Regular,
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                                if (!isSelected) {
+                                    MaterialIcons(
+                                        name = "add-circle-outline",
+                                        size = 16.dp,
+                                        color = if (canSelect) FarimodColors.Medium else FarimodColors.Light,
+                                        modifier = Modifier.absolutePadding(left = 6.dp)
+                                    )
+                                }
                             }
                         }
                     }

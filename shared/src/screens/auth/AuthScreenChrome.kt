@@ -26,13 +26,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
@@ -49,7 +48,7 @@ import ir.farimod.app.ui.RNFonts
 import ir.farimod.app.ui.rgba
 import ir.farimod.app.ui.rnShadow
 import ir.farimod.app.ui.rnTextStyle
-import org.jetbrains.compose.resources.imageResource
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * `Animated.timing` default easing: `Easing.inOut(Easing.ease)` with `Easing.ease = bezier(0.42, 0, 1, 1)`.
@@ -94,15 +93,25 @@ internal fun Modifier.authVerticalMargins(top: Dp, bottom: Dp): Modifier = layou
     }
 }
 
-/** Tiled `background-1.jpg` (resizeMode repeat) plus the white wash used by Login, OTP, and Signup. */
+/**
+ * Background `background-1.jpg` plus the white wash used by Login, OTP, and Signup.
+ * Uses [contentScale] ([ContentScale.FillBounds] by default) so the entire image fits on screen without zooming.
+ */
 @Composable
-internal fun AuthBackdrop(content: @Composable BoxScope.() -> Unit) {
-    val bitmap = imageResource(Res.drawable.background_1)
-    val brush = remember(bitmap) {
-        ShaderBrush(ImageShader(bitmap, TileMode.Repeated, TileMode.Repeated))
-    }
-    Box(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxSize().drawBehind { drawRect(brush) })
+internal fun AuthBackdrop(
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.FillWidth,
+    alignment: Alignment = Alignment.TopCenter,
+    content: @Composable BoxScope.() -> Unit
+) {
+    Box(modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(Res.drawable.background_1),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            alignment = alignment,
+            contentScale = contentScale
+        )
         LinearGradient(
             colors = listOf(
                 rgba(255, 255, 255, 0.1f),

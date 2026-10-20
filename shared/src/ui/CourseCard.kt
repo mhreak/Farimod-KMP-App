@@ -269,7 +269,7 @@ fun CourseCard(
                             if (discountPercentage > 0) {
                                 Column(horizontalAlignment = Alignment.Start) {
                                     AppText(
-                                        text = formatPrice(price),
+                                        text = if (price <= 0.0) "رایگان" else formatPrice(price),
                                         modifier = Modifier.padding(bottom = 2.dp),
                                         fontFamily = RNFonts.Yekan_Bakh_Regular,
                                         fontSize = 9.sp,
@@ -278,7 +278,7 @@ fun CourseCard(
                                         textDecoration = TextDecoration.LineThrough
                                     )
                                     AppText(
-                                        text = formatPrice(specialPrice),
+                                        text = if (specialPrice <= 0.0) "رایگان" else formatPrice(specialPrice),
                                         fontFamily = RNFonts.Yekan_Bakh_Bold,
                                         fontSize = 12.sp,
                                         color = Color(0xFFFF6B6B),
@@ -287,10 +287,10 @@ fun CourseCard(
                                 }
                             } else {
                                 AppText(
-                                    text = formatPrice(price),
+                                    text = if (price <= 0.0) "رایگان" else formatPrice(price),
                                     fontFamily = RNFonts.Yekan_Bakh_Bold,
                                     fontSize = 12.sp,
-                                    color = colors.Primary,
+                                    color = if (price <= 0.0) Color(0xFF10B981) else colors.Primary,
                                     textAlign = TextAlign.Right
                                 )
                             }

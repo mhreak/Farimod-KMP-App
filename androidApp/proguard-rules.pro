@@ -41,3 +41,9 @@
 }
 -keep class ir.farimod.app.data.model.**$$serializer { *; }
 -keep class ir.farimod.app.data.model.**$Companion { *; }
+
+# Keep all project application code, composables, routes, and services identical to debug
+-dontobfuscate
+-keep class ir.farimod.app.** { *; }
+-keepclassmembers class ir.farimod.app.** { *; }
+

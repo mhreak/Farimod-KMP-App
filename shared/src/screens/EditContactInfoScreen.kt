@@ -37,10 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
@@ -62,7 +59,7 @@ import ir.farimod.app.network.jsonOf
 import ir.farimod.app.network.list
 import ir.farimod.app.network.str
 import ir.farimod.app.resources.Res
-import ir.farimod.app.resources.background_1
+import ir.farimod.app.screens.auth.AuthBackdrop
 import ir.farimod.app.state.AuthState
 import ir.farimod.app.theme.FarimodColors
 import ir.farimod.app.ui.AlertButton
@@ -86,6 +83,7 @@ import ir.farimod.app.ui.touchableOpacity
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import org.jetbrains.compose.resources.imageResource
@@ -103,7 +101,8 @@ private data class ContactForm(
     val telegramAccountId: String = "",
     val instagramAccountId: String = "",
     val whatsappAccountMobileNumber: String = "",
-    val address: String = ""
+    val address: String = "",
+    val aboutMe: String = ""
 )
 
 private val PinkGlass = Color(0xB3FFCEE8)
@@ -175,22 +174,13 @@ fun EditContactInfoScreen() {
     val iconSlide = remember { Animatable(-30f) }
     val formFade = remember { Animatable(0f) }
     val formSlide = remember { Animatable(30f) }
-    val pulseTransition = rememberInfiniteTransition(label = "contactPulse")
-    val pulse by pulseTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(tween(2000), RepeatMode.Reverse),
-        label = "contactPulseScale"
-    )
-    val bgBitmap = imageResource(Res.drawable.background_1)
-    val bgBrush = remember(bgBitmap) { ShaderBrush(ImageShader(bgBitmap, TileMode.Repeated, TileMode.Repeated)) }
 
     fun showToast(message: String, type: String = "info") {
         toast = ToastData(true, message, type)
     }
 
     fun goHome() {
-        navigation.navigate("MainTabs", mapOf("screen" to Tabs.Home))
+        navigation.goBack()
     }
 
     suspend fun fetchCities(provinceId: Int) {
@@ -200,15 +190,39 @@ fun EditContactInfoScreen() {
         }
         loadingCities = true
         try {
-            val response = Api.get(
-                "City/GetAllActiveByProvinceId",
-                query = mapOf("provinceId" to provinceId)
-            )
-            cities = if (response.ok) {
-                response.json["Items"].list.map { city ->
-                    PickerOption(city.str("CityName").orEmpty(), city.int("CityId") ?: 0)
+            var currentPage = 1
+            val pageSize = 20
+            val allCities = mutableListOf<JsonElement>()
+            while (true) {
+                val response = Api.get(
+                    "City/GetAllActiveByProvinceId",
+                    query = mapOf(
+                        "provinceId" to provinceId,
+                        "currentPage" to currentPage,
+                        "page" to currentPage,
+                        "pageSize" to pageSize
+                    )
+                )
+                if (!response.ok) break
+                val result = response.json ?: break
+                val items = when {
+                    result is JsonArray -> result
+                    result["Items"] is JsonArray -> result["Items"]
+                    result["Data"] is JsonArray -> result["Data"]
+                    else -> null
+                } as? JsonArray ?: break
+
+                val list = items.list
+                allCities.addAll(list)
+                val total = result["Total"].int ?: result["TotalCount"].int ?: result["TotalItems"].int ?: allCities.size
+                if (list.size < pageSize || allCities.size >= total) {
+                    break
                 }
-            } else emptyList()
+                currentPage++
+            }
+            cities = allCities.map { city ->
+                PickerOption(city.str("CityName").orEmpty(), city.int("CityId") ?: 0)
+            }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {
@@ -222,14 +236,37 @@ fun EditContactInfoScreen() {
         launch {
             loadingProvinces = true
             try {
-                val response = Api.get(
-                    "Province/GetAllActive",
-                    query = mapOf("page" to 1, "pageSize" to 10000)
-                )
-                if (response.ok) {
-                    provinces = response.json["Items"].list.map { item ->
-                        PickerOption(item.str("ProvinceName").orEmpty(), item.int("ProvinceId") ?: 0)
+                var currentPage = 1
+                val pageSize = 20
+                val allProvinces = mutableListOf<JsonElement>()
+                while (true) {
+                    val response = Api.get(
+                        "Province/GetAllActive",
+                        query = mapOf(
+                            "currentPage" to currentPage,
+                            "page" to currentPage,
+                            "pageSize" to pageSize
+                        )
+                    )
+                    if (!response.ok) break
+                    val result = response.json ?: break
+                    val items = when {
+                        result is JsonArray -> result
+                        result["Items"] is JsonArray -> result["Items"]
+                        result["Data"] is JsonArray -> result["Data"]
+                        else -> null
+                    } as? JsonArray ?: break
+
+                    val list = items.list
+                    allProvinces.addAll(list)
+                    val total = result["Total"].int ?: result["TotalCount"].int ?: result["TotalItems"].int ?: allProvinces.size
+                    if (list.size < pageSize || allProvinces.size >= total) {
+                        break
                     }
+                    currentPage++
+                }
+                provinces = allProvinces.map { item ->
+                    PickerOption(item.str("ProvinceName").orEmpty(), item.int("ProvinceId") ?: 0)
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -264,13 +301,18 @@ fun EditContactInfoScreen() {
         launch {
             loadingMobile = true
             var mobile = ""
+            var serverAboutMe: String? = null
             try {
                 val response = Api.get(
                     "MemberInfo/GetProfileInfoToEdit",
                     query = mapOf("memberId" to user?.MemberId)
                 )
-                mobile = if (response.ok) response.json.str("Mobile") ?: user?.Mobile.orEmpty()
-                else user?.Mobile.orEmpty()
+                if (response.ok) {
+                    mobile = response.json.str("Mobile") ?: user?.Mobile.orEmpty()
+                    serverAboutMe = response.json.str("AboutMeText") ?: response.json.str("AboutMe")
+                } else {
+                    mobile = user?.Mobile.orEmpty()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (_: Exception) {
@@ -297,8 +339,12 @@ fun EditContactInfoScreen() {
                 telegramAccountId = contact.str("telegramAccountId").orEmpty(),
                 instagramAccountId = contact.str("instagramAccountId").orEmpty(),
                 whatsappAccountMobileNumber = contact.str("whatsappAccountMobileNumber").orEmpty(),
-                address = contact.str("address").orEmpty()
+                address = contact.str("address").orEmpty(),
+                aboutMe = contact.str("aboutMe") ?: contact.str("AboutMe") ?: contact.str("AboutMeText") ?: serverAboutMe.orEmpty()
             )
+            if (form.aboutMe.isEmpty() && !serverAboutMe.isNullOrEmpty()) {
+                form = form.copy(aboutMe = serverAboutMe)
+            }
             groups = contact["memberGroupList"].list.mapNotNull { it.int("MemberGroupId") }
             loadingMobile = false
             val provinceId = form.provinceId
@@ -342,7 +388,7 @@ fun EditContactInfoScreen() {
             try {
                 val payload = jsonOf(
                     "MemberId" to (user?.MemberId ?: 0),
-                    "AboutMe" to (contact.str("aboutMe") ?: ""),
+                    "AboutMe" to form.aboutMe.trim(),
                     "CityId" to form.cityId,
                     "ProvinceId" to form.provinceId,
                     "Mobile" to form.mobile.trim(),
@@ -414,16 +460,7 @@ fun EditContactInfoScreen() {
         else -> "شهر"
     }
 
-    Box(Modifier.fillMaxSize().background(bgBrush)) {
-        LinearGradient(
-            colors = listOf(
-                Color.White.copy(alpha = 0.1f),
-                Color.White.copy(alpha = 0.6f),
-                Color.White.copy(alpha = 0.8f),
-                Color.White
-            ),
-            modifier = Modifier.fillMaxSize()
-        )
+    AuthBackdrop {
         if (loadingMobile) {
             Column(
                 Modifier.fillMaxSize(),
@@ -459,8 +496,6 @@ fun EditContactInfoScreen() {
                                 .graphicsLayer {
                                     alpha = iconFade.value
                                     translationY = iconSlide.value * density.density
-                                    scaleX = pulse
-                                    scaleY = pulse
                                 },
                             contentAlignment = Alignment.Center
                         ) {
@@ -488,6 +523,7 @@ fun EditContactInfoScreen() {
                             ) {
                                 Box(
                                     Modifier
+                                        .align(Alignment.Center)
                                         .size(80.dp)
                                         .border(2.dp, PinkInner, CircleShape)
                                         .background(Color(0x26FFCEE8), CircleShape),
@@ -557,18 +593,18 @@ fun EditContactInfoScreen() {
                                             .padding(bottom = 15.dp)
                                             .clip(RoundedCornerShape(12.dp))
                                             .border(1.dp, Color(0x66F59E0B), RoundedCornerShape(12.dp))
-                                            .background(Color(0x26F59E0B))
+                                            .background(Color(0xA4F59E0B))
                                             .padding(12.dp),
                                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        MaterialIcons("warning", size = 20.dp, color = FarimodColors.Warning)
+                                        MaterialIcons("warning", size = 20.dp, color = FarimodColors.White)
                                         AppText(
                                             text = "با تغییر شماره موبایل، باید مجدداً وارد شوید",
                                             modifier = Modifier.weight(1f),
                                             fontSize = 13.sp,
                                             fontFamily = RNFonts.Yekan_Bakh_Regular,
-                                            color = FarimodColors.Warning,
+                                            color = FarimodColors.White,
                                             textAlign = TextAlign.Right
                                         )
                                     }
@@ -741,25 +777,35 @@ fun EditContactInfoScreen() {
                                         groups = selected.mapNotNull { (it.value as? Number)?.toInt() }
                                     }
                                 )
-                                RowReverse(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 15.dp, bottom = 15.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color.White.copy(alpha = 0.3f))
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    MaterialIcons("info-outline", size = 16.dp, color = FarimodColors.Medium)
-                                    AppText(
-                                        text = "شماره موبایل الزامی است. سایر فیلدها اختیاری هستند.",
-                                        modifier = Modifier.weight(1f).absolutePadding(right = 6.dp),
-                                        fontSize = 12.sp,
-                                        fontFamily = RNFonts.Yekan_Bakh_Regular,
-                                        color = FarimodColors.Medium,
-                                        textAlign = TextAlign.Right
-                                    )
-                                }
+                                ContactSection("person", "درباره من")
+                                AppTextInput(
+                                    value = form.aboutMe,
+                                    onChangeText = { form = form.copy(aboutMe = it) },
+                                    icon = "person",
+                                    placeholder = "متن درباره خود را وارد کنید...",
+                                    isLargeInput = true,
+                                    height = 120.dp,
+                                    editable = canShow
+                                )
+//                                RowReverse(
+//                                    Modifier
+//                                        .fillMaxWidth()
+//                                        .padding(top = 15.dp, bottom = 15.dp)
+//                                        .clip(RoundedCornerShape(8.dp))
+//                                        .background(Color.White.copy(alpha = 0.3f))
+//                                        .padding(10.dp),
+//                                    verticalAlignment = Alignment.CenterVertically
+//                                ) {
+//                                    MaterialIcons("info-outline", size = 16.dp, color = FarimodColors.Medium)
+//                                    AppText(
+//                                        text = "شماره موبایل الزامی است. سایر فیلدها اختیاری هستند.",
+//                                        modifier = Modifier.weight(1f).absolutePadding(right = 6.dp),
+//                                        fontSize = 12.sp,
+//                                        fontFamily = RNFonts.Yekan_Bakh_Regular,
+//                                        color = FarimodColors.Medium,
+//                                        textAlign = TextAlign.Right
+//                                    )
+//                                }
                                 AppButton(
                                     title = if (submitting) "در حال ذخیره..." else "ذخیره تغییرات",
                                     onPress = { onSave() },
@@ -770,7 +816,7 @@ fun EditContactInfoScreen() {
                             }
                         }
                     }
-                    Row(
+                    RowReverse(
                         Modifier
                             .align(Alignment.TopCenter)
                             .fillMaxWidth()
@@ -779,9 +825,6 @@ fun EditContactInfoScreen() {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Tooltip(
-                            content = "اطلاعات تماس خود شامل تلفن، ایمیل، شبکه‌های اجتماعی و آدرس را ویرایش کنید. این اطلاعات برای سایر کاربران قابل نمایش خواهد بود."
-                        )
                         Box(
                             Modifier
                                 .graphicsLayer {
@@ -796,6 +839,9 @@ fun EditContactInfoScreen() {
                         ) {
                             MaterialIcons("arrow-forward", size = 24.dp, color = Color.White)
                         }
+                        Tooltip(
+                            content = "اطلاعات تماس خود شامل تلفن، ایمیل، شبکه‌های اجتماعی و آدرس را ویرایش کنید. این اطلاعات برای سایر کاربران قابل نمایش خواهد بود."
+                        )
                     }
                 }
             }

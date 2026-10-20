@@ -11,7 +11,7 @@ settings:
   android:
     namespace: ir.farimod.app
     applicationId: ir.farimod.app
-    versionCode: 1
-    versionName: "1.0.0"
+    versionCode: 48
+    versionName: "1.48.0"
     # Release AAB/APK is signed with androidApp/keystore.properties (not committed).
     signing: enabled
